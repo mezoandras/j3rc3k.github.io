@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>EDIT</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script>
+function formatDoc(cmd, value) {
+  document.execCommand(cmd, false, value);
+}
+
+function setUrl() {
+  var url = prompt('Adja meg a link URL-jét:', 'http://');
+  if (url) {
+    formatDoc('createLink', url);
+  }
+}
+
+function setImage() {
+  var imageUrl = prompt('Adja meg a kép URL-jét:', 'http://');
+  if (imageUrl) {
+    var img = document.createElement('img');
+    img.src = imageUrl;
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto'; 
+    img.style.resize = 'both'; 
+    img.style.overflow = 'auto';
+    document.getElementById('editor').appendChild(img);
+  }
+}
+
+function setFontFamily() {
+  var fontFamily = prompt('Válassza ki a betűtípust:', 'Arial,Courier New,Times New Roman,Georgia,Verdana');
+  if (fontFamily) {
+    formatDoc('fontName', fontFamily);
+  }
+}
+
+function setFontSize() {
+  var fontSize = prompt('Válassza ki a betűméretet (1-7):', '');
+  if (fontSize) {
+    formatDoc('fontSize', fontSize);
+  }
+}
+
+function setCustomColor(type) {
+  var color = prompt('Adja meg a szín kódját (pl. #ff0000):', '#');
+  if (color) {
+    formatDoc(type === 'foreColor' ? 'foreColor' : 'hiliteColor', color);
+  }
+}
+</script>
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f5f4;
+  }
+  .toolbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background-color: #f4f5f4;
+    text-align: center;
+    padding: 10px 0;
+    border-bottom: 0px solid #ccc;
+    z-index: 1000;
+  }
+  #editor {
+    border: 0px solid #ccc;
+    padding: 10px;
+    max-width: 900px;
+    margin: 60px auto 0;
+    background-color: #fff;
+    height: calc(100% - 70px);
+    overflow-y: auto;
+    outline: none;
+    cursor: text;
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+    resize: both;
+    overflow: auto;
+  }
+  button, select {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 10px;
+  }
+  button:hover, select:hover {
+    background-color: #f0f0f0;
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button onclick="formatDoc('bold')" title="Félkövér"><i class="fa fa-bold"></i></button>
+  <button onclick="formatDoc('italic')" title="Dőlt"><i class="fa fa-italic"></i></button>
+  <button onclick="formatDoc('underline')" title="Aláhúzott"><i class="fa fa-underline"></i></button>
+  <button onclick="formatDoc('removeFormat')" title="Formázás törlése"><i class="fa fa-eraser"></i></button>
+  <button onclick="setFontSize()" title="Betűméret"><i class="fa fa-text-height"></i></button>
+  <button onclick="setFontFamily()" title="Betűtípus"><i class="fa fa-font"></i></button>
+  <button onclick="setCustomColor('foreColor')" title="Betű színe"><i class="fa fa-palette"></i></button>
+  <button onclick="setCustomColor('hiliteColor')" title="Kiemelés színe"><i class="fa fa-highlighter"></i></button>
+  <button onclick="formatDoc('justifyLeft')" title="Balra igazítás"><i class="fa fa-align-left"></i></button>
+  <button onclick="formatDoc('justifyCenter')" title="Középre igazítás"><i class="fa fa-align-center"></i></button>
+  <button onclick="formatDoc('justifyRight')" title="Jobbra igazítás"><i class="fa fa-align-right"></i></button>
+  <button onclick="formatDoc('insertHorizontalRule')" title="Vízszintes vonal"><i class="fa fa-minus"></i></button>
+  <button onclick="setUrl()" title="Link beszúrása"><i class="fa fa-link"></i></button>
+  <button onclick="setImage()" title="Kép beszúrása"><i class="fa fa-image"></i></button>
+  <button onclick="printDocument()" title="Nyomtatás"><i class="fa fa-print"></i></button>
+</div>
+<div id="editor" contenteditable="true"></div>
+<script>
+document.getElementById('editor').focus();
+function printDocument() {
+  var content = document.getElementById('editor').innerHTML;
+  var printWindow = window.open('', '_blank', 'height=600,width=800');
+  printWindow.document.write('<html><head><title>Nyomtatás</title>');
+  printWindow.document.write('</head><body>');
+  printWindow.document.write(content);
+  printWindow.document.write('</body></html>');
+  printWindow.document.close();
+  printWindow.print();
+}
+</script>
+</body>
+</html>
