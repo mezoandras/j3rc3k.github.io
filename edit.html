@@ -33,6 +33,29 @@ function loadContent() {
     }
   }
 }
+
+function openFile(event) {
+  const input = event.target;
+  const reader = new FileReader();
+  reader.onload = function() {
+    const text = reader.result;
+    document.getElementById('editor').innerHTML = text.replace(/\n/g, '<br>');
+  };
+  reader.readAsText(input.files[0]);
+}
+
+function downloadContent() {
+  const content = document.getElementById('editor').innerText;
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'content.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 </script>
 <style>
   body, html {
@@ -54,6 +77,11 @@ function loadContent() {
     justify-content: center;
     flex-wrap: wrap;
     align-items: center;
+  }
+  .separator {
+    height: 24px;
+    border-left: 1px solid #ccc;
+    margin: 0 10px;
   }
   #editor {
     border: 1px solid #ccc;
@@ -77,13 +105,13 @@ function loadContent() {
     gap: 10px;
     flex-wrap: wrap;
   }
-  button, select {
+  button, select, label {
     background: none;
     border: none;
     cursor: pointer;
     padding: 5px 10px;
   }
-  button:hover, select:hover {
+  button:hover, select:hover, label:hover {
     background-color: #f0f0f0;
   }
   .github-logo-container {
@@ -99,6 +127,12 @@ function loadContent() {
     border: 1px solid #ccc;
     padding: 5px;
   }
+  #file-input {
+    display: none;
+  }
+  .fa-folder-open {
+    font-size: 0.8em;
+  }
   @media (max-width: 420px) {
     .toolbar {
       justify-content: flex-start;
@@ -113,9 +147,15 @@ function loadContent() {
 <body onload="loadContent()">
 <div class="toolbar">
   <div class="toolbar-buttons">
+    <label for="file-input" title="Megnyitás"><i class="fa fa-folder-open"></i></label>
+    <input type="file" id="file-input" accept=".txt" onchange="openFile(event)">
+    <button onclick="downloadContent()" title="Letöltés"><i class="fa fa-download"></i></button>
     <button onclick="saveContent()" title="Mentés"><i class="fa fa-save"></i></button>
+    <div class="separator"></div>
     <button onclick="formatDoc('undo')" title="Visszavonás"><i class="fa fa-undo"></i></button>
     <button onclick="formatDoc('redo')" title="Újra"><i class="fa fa-redo"></i></button>
+            <div class="separator"></div>
+
     <button onclick="formatDoc('bold')" title="Félkövér"><i class="fa fa-bold"></i></button>
     <button onclick="formatDoc('italic')" title="Dőlt"><i class="fa fa-italic"></i></button>
     <button onclick="formatDoc('underline')" title="Aláhúzott"><i class="fa fa-underline"></i></button>
@@ -129,9 +169,12 @@ function loadContent() {
       <option value="6">6</option>
       <option value="7">7</option>
     </select>
+        <div class="separator"></div>
     <button onclick="formatDoc('justifyLeft')" title="Balra igazítás"><i class="fa fa-align-left"></i></button>
     <button onclick="formatDoc('justifyCenter')" title="Középre igazítás"><i class="fa fa-align-center"></i></button>
     <button onclick="formatDoc('justifyRight')" title="Jobbra igazítás"><i class="fa fa-align-right"></i></button>
+            <div class="separator"></div>
+
     <button onclick="formatDoc('insertHorizontalRule')" title="Vízszintes vonal"><i class="fa fa-minus"></i></button>
     <button onclick="printDocument()" title="Nyomtatás"><i class="fa fa-print"></i></button>
   </div>
