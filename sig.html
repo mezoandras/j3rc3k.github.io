@@ -38,6 +38,7 @@
 
         function handleMouseDown(e) {
             drawing = true;
+            ctx.beginPath();
             ctx.moveTo(e.offsetX, e.offsetY);
         }
 
@@ -56,6 +57,7 @@
             e.preventDefault();
             drawing = true;
             var touchPos = getTouchPos(canvas, e);
+            ctx.beginPath();
             ctx.moveTo(touchPos.x, touchPos.y);
         }
 
@@ -128,7 +130,11 @@
             const link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
             link.download = filename;
+
+            // Simulate a click event
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
