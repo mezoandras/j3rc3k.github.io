@@ -1,17 +1,29 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Aláírás</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <style>
         #signature-pad {
             border: 1px solid black;
             width: 100%;
             max-width: 400px;
             height: 200px;
+        }
+        #pdf-preview {
+            border: 1px solid black;
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+        #unique-id {
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 16px;
+            color: blue;
         }
     </style>
 </head>
@@ -23,10 +35,14 @@
     <br>
     <button onclick="clearCanvas()">Törlés</button>
     <button onclick="saveSignature()">Mentés PDF-be</button>
+    <br><br>
+    <div id="pdf-preview"></div>
+    <div id="unique-id"></div>
     <script>
         const canvas = document.getElementById('signature-pad');
         const ctx = canvas.getContext('2d');
         let drawing = false;
+        let uniqueId = '';
 
         function getTouchPos(canvasDom, touchEvent) {
             var rect = canvasDom.getBoundingClientRect();
@@ -87,6 +103,16 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
+        function getCurrentDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
         async function saveSignature() {
             const pdfFile = document.getElementById('pdf-file').files[0];
             if (!pdfFile) {
@@ -119,6 +145,27 @@
                     height: 100
                 });
 
+                // Add unique ID to the PDF inside the signature box
+                firstPage.drawText(uniqueId, {
+                    x: xPosition + 100, // Center the text horizontally in the signature box
+                    y: yPosition + 10,  // Position the text at the bottom of the signature box
+                    size: 12,
+                    color: PDFLib.rgb(0, 0, 0), // Set color to black
+                    align: 'center',
+                    font: await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica)
+                });
+
+                // Add current date and time below the signature box
+                const dateTime = getCurrentDateTime();
+                firstPage.drawText(dateTime, {
+                    x: xPosition + 100, // Center the text horizontally below the signature box
+                    y: yPosition - 20,  // Position the text below the signature box
+                    size: 12,
+                    color: PDFLib.rgb(0, 0, 0), // Set color to black
+                    align: 'center',
+                    font: await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica)
+                });
+
                 const pdfBytes = await pdfDoc.save();
                 download(pdfBytes, 'signed.pdf', 'application/pdf');
             };
@@ -136,6 +183,49 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        document.getElementById('pdf-file').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file.type !== "application/pdf") {
+                alert('Kérlek, válassz egy PDF fájlt!');
+                return;
+            }
+
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+
+                pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                    // Fetch the first page
+                    pdf.getPage(1).then(page => {
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        // Render the PDF page into the canvas context
+                        const renderContext = {
+                            canvasContext: context,
+                            viewport: viewport
+                        };
+                        page.render(renderContext).promise.then(() => {
+                            document.getElementById('pdf-preview').appendChild(canvas);
+                        });
+                    });
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        });
+
+        // Generate a unique identifier
+        function generateUniqueId() {
+            return Math.random().toString(36).substr(2, 12);
+        }
+
+        // Display the unique identifier
+        uniqueId = generateUniqueId();
+        document.getElementById('unique-id').innerText = 'Azonosító: ' + uniqueId;
     </script>
 </body>
 </html>
