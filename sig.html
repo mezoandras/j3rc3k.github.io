@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Aláírás</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        #signature-pad {
+            border: 1px solid black;
+            width: 400px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Aláírás</h1>
+    <input type="file" id="pdf-file" accept="application/pdf">
+    <br><br>
+    <canvas id="signature-pad"></canvas>
+    <br>
+    <button onclick="clearCanvas()">Törlés</button>
+    <button onclick="saveSignature()">Mentés PDF-be</button>
+    <script>
+        const canvas = document.getElementById('signature-pad');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (drawing) {
+                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.stroke();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            drawing = false;
+        });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function saveSignature() {
+            const pdfFile = document.getElementById('pdf-file').files[0];
+            if (!pdfFile) {
+                alert('Kérlek, válassz egy PDF fájlt!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const pdfDoc = await PDFLib.PDFDocument.load(event.target.result);
+                const pages = pdfDoc.getPages();
+                const firstPage = pages[0];
+
+                const signatureImage = await html2canvas(canvas).then(canvas => {
+                    return canvas.toDataURL('image/png');
+                });
+
+                const pngImageBytes = await fetch(signatureImage).then(res => res.arrayBuffer());
+                const pngImage = await pdfDoc.embedPng(pngImageBytes);
+                const { width, height } = firstPage.getSize();
+
+                // Adjusting the position to the bottom-right corner
+                const xPosition = width - 200 - 50; // 50 pixels from the right edge
+                const yPosition = 50; // 50 pixels from the bottom edge
+
+                firstPage.drawImage(pngImage, {
+                    x: xPosition,
+                    y: yPosition,
+                    width: 200,
+                    height: 100
+                });
+
+                const pdfBytes = await pdfDoc.save();
+                download(pdfBytes, 'signed.pdf', 'application/pdf');
+            };
+            reader.readAsArrayBuffer(pdfFile);
+        }
+
+        function download(data, filename, type) {
+            const blob = new Blob([data], { type: type });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+</html>
