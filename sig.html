@@ -9,7 +9,8 @@
     <style>
         #signature-pad {
             border: 1px solid black;
-            width: 400px;
+            width: 100%;
+            max-width: 400px;
             height: 200px;
         }
     </style>
@@ -27,25 +28,58 @@
         const ctx = canvas.getContext('2d');
         let drawing = false;
 
-        canvas.addEventListener('mousedown', (e) => {
-            drawing = true;
-            ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
-        });
+        function getTouchPos(canvasDom, touchEvent) {
+            var rect = canvasDom.getBoundingClientRect();
+            return {
+                x: touchEvent.touches[0].clientX - rect.left,
+                y: touchEvent.touches[0].clientY - rect.top
+            };
+        }
 
-        canvas.addEventListener('mousemove', (e) => {
+        function handleMouseDown(e) {
+            drawing = true;
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+
+        function handleMouseMove(e) {
             if (drawing) {
-                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.lineTo(e.offsetX, e.offsetY);
                 ctx.stroke();
             }
-        });
+        }
 
-        canvas.addEventListener('mouseup', () => {
+        function handleMouseUp() {
             drawing = false;
-        });
+        }
 
-        canvas.addEventListener('mouseleave', () => {
+        function handleTouchStart(e) {
+            e.preventDefault();
+            drawing = true;
+            var touchPos = getTouchPos(canvas, e);
+            ctx.moveTo(touchPos.x, touchPos.y);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (drawing) {
+                var touchPos = getTouchPos(canvas, e);
+                ctx.lineTo(touchPos.x, touchPos.y);
+                ctx.stroke();
+            }
+        }
+
+        function handleTouchEnd() {
             drawing = false;
-        });
+        }
+
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+
+        canvas.addEventListener('touchstart', handleTouchStart, false);
+        canvas.addEventListener('touchmove', handleTouchMove, false);
+        canvas.addEventListener('touchend', handleTouchEnd, false);
 
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
