@@ -167,21 +167,13 @@
                 });
 
                 const pdfBytes = await pdfDoc.save();
-                download(pdfBytes, 'signed.pdf', 'application/pdf');
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                // Open the PDF in a new tab
+                window.open(url);
             };
             reader.readAsArrayBuffer(pdfFile);
-        }
-
-        function download(data, filename, type) {
-            const blob = new Blob([data], { type: type });
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = filename;
-
-            // Simulate a click event
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
 
         document.getElementById('pdf-file').addEventListener('change', function(event) {
