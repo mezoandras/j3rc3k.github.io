@@ -38,6 +38,7 @@
     <br><br>
     <div id="pdf-preview"></div>
     <div id="unique-id"></div>
+    <a id="download-link" style="display: none;">Letöltés</a>
     <script>
         const canvas = document.getElementById('signature-pad');
         const ctx = canvas.getContext('2d');
@@ -170,8 +171,12 @@
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
 
-                // Open the PDF in a new tab
-                window.open(url);
+                // Set the download link
+                const downloadLink = document.getElementById('download-link');
+                downloadLink.href = url;
+                downloadLink.download = 'signed.pdf';
+                downloadLink.style.display = 'block';
+                downloadLink.innerText = 'Kattints ide a PDF letöltéséhez';
             };
             reader.readAsArrayBuffer(pdfFile);
         }
