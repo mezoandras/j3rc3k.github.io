@@ -19,5 +19,12 @@
       <description>Ez a második hír.</description>
       <pubDate>Tue, 28 Jan 2025 10:30:00 GMT</pubDate>
     </item>
+
+    item>
+      <title>Harmadik hír</title>
+      <description>Ez a harmaid :) hír.</description>
+      <pubDate>Tue, 28 Jan 2025 10:30:00 GMT</pubDate>
+    </item>
+    
   </channel>
 </rss>
