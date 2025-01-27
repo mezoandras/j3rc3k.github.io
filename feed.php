@@ -12,7 +12,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 
     <?php
     $hirek = [
-        ["title" => "Első hír", "link" => "https://www.sajatweboldal.hu/elso-hir", "description" => "Ez az első hír.", "date" => "Mon, 27 Jan 2025 12:00:00 GMT"],
+        ["title" => "Első hír", "link" => "https://www.sajatweboldal.hu/elso-hir", "description" => "Ez az első sd hír.", "date" => "Mon, 27 Jan 2025 12:00:00 GMT"],
         ["title" => "Második hír", "link" => "https://www.sajatweboldal.hu/masodik-hir", "description" => "Ez a második hír.", "date" => "Tue, 28 Jan 2025 10:30:00 GMT"],
     ];
 
