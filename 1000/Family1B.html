@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Szókártyák – Mobilbarát</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    #stats {
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #444;
+      text-align: center;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    #card {
+      background: transparent;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      padding: 2rem;
+      text-align: center;
+      user-select: none;
+    }
+
+    #card div {
+      margin: 1rem 0;
+    }
+
+    #controls {
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      background: white;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+    }
+
+    button {
+      flex: 1;
+      max-width: 180px;
+      font-size: 1.2rem;
+      padding: 1rem;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    button:enabled {
+      opacity: 1;
+    }
+
+    .wrong {
+      background: #e53935;
+    }
+
+    .right {
+      background: #43a047;
+    }
+
+    @media (min-width: 600px) {
+      #card {
+        font-size: 2.5rem;
+        max-width: 600px;
+        margin: 2rem auto;
+      }
+
+      button {
+        font-size: 1.4rem;
+        max-width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stats">
+    Összes szó: <span id="total">0</span> |
+    ✅ Tudtam: <span id="known">0</span> |
+    📌 Javításra szorul: <span id="needsReview">0</span> |
+    🔁 Hátralévő: <span id="remaining">0</span>
+  </div>
+
+  <div id="main" onclick="reveal()">
+    <div id="card">
+      <div id="eng">...</div>
+      <div id="hun"></div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button class="wrong" id="btnWrong" onclick="handleWrong(event)">❌ Nem tudtam</button>
+    <button class="right" id="btnRight" onclick="handleRight(event)">✅ Tudtam</button>
+  </div>
+
+  <script>
+    const wordPairs = [
+  ["to share problems", "megosztja a problémákat"],
+  ["wage-earners", "kenyérkeresők"],
+  ["elder brother", "báty"],
+  ["younger brother", "öcs"],
+  ["to trust somebody", "bízik valakiben"],
+  ["to get on well or badly", "jól vagy rosszul jön ki valakivel"],
+  ["to argue", "vitatkozik"],
+  ["tolerant", "türelmes"],
+  ["to care about somebody", "törődik valakivel"],
+  ["grandparents", "nagyszülők"],
+  ["dad, daddy", "apu"],
+  ["mum, mummy", "anyu"],
+  ["grandpa", "nagyapa"],
+  ["grandma", "nagymama"],
+  ["to grow to like", "megszeret"],
+  ["to have a row with somebody", "összeveszik valakivel"],
+  ["strong family ties", "erős családi kötelék"],
+  ["the in-law", "házasság révén szerzett rokon"],
+  ["aunt", "nagynéni"],
+  ["uncle", "nagybácsi"],
+  ["nephew", "unokaöcs"],
+  ["niece", "unokahúg"],
+  ["cousin", "unokatestvér"],
+  ["scattered", "szétszóródott"],
+  ["to live close together", "közel élnek egymáshoz"],
+  ["to take after somebody", "hasonlít valakire"],
+  ["general appearance", "általános megjelenés"],
+  ["thin", "sovány"],
+  ["muscular", "izmos"],
+  ["heavily-built", "erős testalkatú"],
+  ["overweight", "túlsúlyos"],
+  ["fat", "kövér"],
+  ["height - short, tall", "magasság - alacsony, magas"],
+  ["hair - short, long", "haj - rövid, hosszú"],
+  ["hair - straight, curly, wavy", "haj - egyenes, göndör, hullámos"],
+  ["to go grey", "őszül"],
+  ["thinning", "ritkuló"],
+  ["untidy", "rendezetlen"],
+  ["unkempt", "ápolatlan"],
+  ["is thinning on the top", "kopaszodik"],
+  ["wig", "paróka"],
+  ["eyes", "szemek"],
+  ["nose", "orr"],
+  ["mouth", "száj"],
+  ["lips", "ajkak"],
+  ["chin", "áll"],
+  ["double chin", "toka"],
+  ["face", "arc"],
+  ["cheekbone", "arccsont"],
+  ["scar", "sebhely"],
+  ["hollow", "beesett (pl. arc)"],
+  ["wrinkled", "ráncos"],
+  ["freckled", "szeplős"],
+  ["tanned", "lebarnult"],
+  ["to have bags under one's eyes", "táskás a szeme"],
+  ["eyebrush", "szemöldök"],  // (helyesen: "eyebrow")
+  ["moustache", "bajusz"],
+  ["beard", "szakáll"],
+  ["sideburns", "pajesz"],
+  ["to judge by appearance", "külső alapján ítél"],
+  ["casually dressed", "lezseren öltözködik"],
+  ["is it not the gay coat that makes a gentleman", "nem a ruha teszi az embert"],
+  ["repulsive", "visszataszító"],
+  ["attractive", "vonzó"],
+  ["good-looking", "jóképű (férfi)"],
+  ["pretty", "csinos (nő)"],
+  ["charming", "elbűvölő"],
+  ["plain", "egyszerű (kinézetű)"],
+  ["wel-balanced", "kiegyensúlyozott"],
+  ["generous", "nagylelkű"],
+  ["efficient", "hatékony"],
+  ["honest", "becsületes"],
+  ["mature", "érett"],
+  ["amusing", "szórakoztató"],
+  ["confident", "magabiztos"],
+  ["creative", "kreatív"],
+  ["energetic", "energikus"],
+  ["flexible", "rugalmas"],
+  ["lively", "élénk"],
+  ["patient", "türelmes"],
+  ["rational, sensible", "ésszerű"],
+  ["reliable", "megbízható"],
+  ["sensitive", "érzékeny"],
+  ["sincere", "őszinte"],
+  ["witty", "szellemes"],
+  ["to speak one's mind", "elmondja, amit gondol"],
+  ["cheeky", "szemtelen"],
+  ["boastful", "dicsekvő"],
+  ["uncultured", "műveletlen"],
+  ["superficial", "felületes"],
+  ["quick-tempered", "lobbanékony"],
+  ["mediocre", "középszerű"],
+  ["obstinate", "makacs"],
+  ["forgetful", "feledékeny"],
+  ["silly", "butácska"],
+  ["negligent", "hanyag"],
+  ["shy", "szégyenlős"],
+  ["sulky", "mogorva"],
+  ["to brood", "tűnődik, mereng"],
+  ["worried, nervous", "aggódó, ideges"],
+  ["cautious", "óvatos"],
+  ["practical", "gyakorlatias"],
+  ["bad-tempered", "rosszkedvű"],
+  ["cynical", "cinikus"],
+  ["touchy", "érzékeny (sértődékeny)"],
+  ["greedy", "mohó"],
+  ["nosy", "kíváncsiskodó"],
+  ["to be fed up", "elege van"],
+  ["to sigh", "sóhajt"],
+  ["to frown", "ráncolja a homlokát"],
+  ["to moan", "nyög"],
+  ["to fly into a rage", "dühbe gurul"],
+  ["to lose one's temper", "elveszíti a türelmét"],
+  ["tender", "gyengéd"],
+  ["clinging", "ragaszkodó"],
+  ["intuitive", "ösztönös"],
+  ["yielding", "engedékeny"],
+  ["decorative", "mutatós"],
+  ["brave", "bátor"]
+    ];
+
+    let fullSet = [...wordPairs];
+    let currentSet = [...wordPairs];
+    let retrySet = [];
+
+    let knownWords = new Set();
+    let needsReviewWords = new Set();
+
+    let current = {};
+    let revealMode = '';
+    let revealed = false;
+
+    const engDiv = document.getElementById("eng");
+    const hunDiv = document.getElementById("hun");
+
+    const btnWrong = document.getElementById("btnWrong");
+    const btnRight = document.getElementById("btnRight");
+
+    const totalEl = document.getElementById("total");
+    const knownEl = document.getElementById("known");
+    const needsReviewEl = document.getElementById("needsReview");
+    const remainingEl = document.getElementById("remaining");
+
+    totalEl.textContent = fullSet.length;
+
+    function updateStats() {
+      knownEl.textContent = knownWords.size;
+      needsReviewEl.textContent = needsReviewWords.size;
+      remainingEl.textContent = currentSet.length + retrySet.length;
+    }
+
+    function setButtons(enabled) {
+      btnWrong.disabled = !enabled;
+      btnRight.disabled = !enabled;
+    }
+
+    function nextCard() {
+      setButtons(false);
+      if (currentSet.length === 0) {
+        if (retrySet.length > 0) {
+          currentSet = [...retrySet];
+          retrySet = [];
+        } else {
+          engDiv.innerHTML = "🎉 Minden szót megtanultál!";
+          hunDiv.innerHTML = "";
+          updateStats();
+          return;
+        }
+      }
+
+      const index = Math.floor(Math.random() * currentSet.length);
+      const [eng, hun] = currentSet.splice(index, 1)[0];
+      current = { eng, hun };
+      revealMode = Math.random() < 0.5 ? "hun" : "eng";
+      revealed = false;
+      updateCard();
+      updateStats();
+    }
+
+    function updateCard() {
+      engDiv.innerHTML = (revealMode === "eng" && !revealed) ? "..." : current.eng;
+      hunDiv.innerHTML = (revealMode === "hun" && !revealed) ? "..." : current.hun;
+    }
+
+    function reveal() {
+      if (revealed) return;
+      revealed = true;
+      updateCard();
+      setButtons(true);
+    }
+
+    function handleWrong(event) {
+      event.stopPropagation(); // ne aktiválja a reveal-t
+      markAnswer(false);
+    }
+
+    function handleRight(event) {
+      event.stopPropagation(); // ne aktiválja a reveal-t
+      markAnswer(true);
+    }
+
+    function markAnswer(knewIt) {
+      const key = current.eng + "|" + current.hun;
+
+      if (knewIt) {
+        knownWords.add(key);
+        needsReviewWords.delete(key);
+      } else {
+        needsReviewWords.add(key);
+        retrySet.push([current.eng, current.hun]);
+      }
+
+      nextCard();
+    }
+
+    nextCard();
+  </script>
+</body>
+</html>

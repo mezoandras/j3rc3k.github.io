@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Szókártyák – Mobilbarát</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    #stats {
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #444;
+      text-align: center;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    #card {
+      background: transparent;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      padding: 2rem;
+      text-align: center;
+      user-select: none;
+    }
+
+    #card div {
+      margin: 1rem 0;
+    }
+
+    #controls {
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      background: white;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+    }
+
+    button {
+      flex: 1;
+      max-width: 180px;
+      font-size: 1.2rem;
+      padding: 1rem;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    button:enabled {
+      opacity: 1;
+    }
+
+    .wrong {
+      background: #e53935;
+    }
+
+    .right {
+      background: #43a047;
+    }
+
+    @media (min-width: 600px) {
+      #card {
+        font-size: 2.5rem;
+        max-width: 600px;
+        margin: 2rem auto;
+      }
+
+      button {
+        font-size: 1.4rem;
+        max-width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stats">
+    Összes szó: <span id="total">0</span> |
+    ✅ Tudtam: <span id="known">0</span> |
+    📌 Javításra szorul: <span id="needsReview">0</span> |
+    🔁 Hátralévő: <span id="remaining">0</span>
+  </div>
+
+  <div id="main" onclick="reveal()">
+    <div id="card">
+      <div id="eng">...</div>
+      <div id="hun"></div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button class="wrong" id="btnWrong" onclick="handleWrong(event)">❌ Nem tudtam</button>
+    <button class="right" id="btnRight" onclick="handleRight(event)">✅ Tudtam</button>
+  </div>
+
+  <script>
+    const wordPairs = [
+  ["as a matter of fact", "valójában"],
+  ["to set the alarm clock", "beállítja az ébresztőórát"],
+  ["to oversleep", "elalszik"],
+  ["to sleep like a log", "alszik, mint a bunda"],
+  ["to jump out of bed", "kiugrik az ágyból"],
+  ["heavy sleeper", "mélyen alvó"],
+  ["light sleeper", "felszínesen alvó"],
+  ["to wander", "mászkál"],
+  ["to shave", "borotválkozik"],
+  ["to fiddle around", "elszöszmötöl"],
+  ["to dry oneself with a towel", "megtörölközik"],
+  ["to polish one's shoes", "kipucolja a cipőjét"],
+  ["to take the children to nursery", "óvodába viszi a gyereket"],
+  ["as a rule", "rendszerint"],
+  ["snack", "nassolnivaló, falat"],
+  ["to make a fuss", "nagy ügyet csinál valamiből"],
+  ["on a regular basis", "rendszeresen"],
+  ["to start with", "kezd valamivel"],
+  ["buttered toast", "vajas pirítós"],
+  ["scrambled eggs", "tojásrántotta"],
+  ["fried eggs", "tükörtojás"],
+  ["cornflakes", "kukoricapehely"],
+  ["sausages", "kolbász"],
+  ["cold cuts", "felvágottak"],
+  ["roll", "zsemle"],
+  ["croissant", "kifli (croissant)"],
+  ["a mug of cocoa", "egy bögre kakaó"],
+  ["to bother", "zavartatja magát"],
+  ["that is all there is to it", "ez minden, ennyi az egész"],
+  ["to tell the truth", "az igazat megvallva"],
+  ["to grow used to", "hozzászokik"],
+  ["to hop on", "felugrik (járműre)"],
+  ["to get stuck", "megreked, beragad"],
+  ["to go by bus", "busszal megy"],
+  ["to go on foot", "gyalog megy"],
+  ["to take a bus", "buszra száll"],
+  ["to change for", "átszáll (másik járműre)"],
+  ["to get off a bus", "leszáll a buszról"],
+  ["to put off", "letesz, lerak"],
+  ["to enable", "lehetővé tesz, képessé tesz"],
+  ["to do overtime", "túlórázik"],
+  ["flexitime", "rugalmas munkaidő"],
+  ["direct consequence", "egyenes következmény"],
+  ["to work long hours", "sokat dolgozik"],
+  ["dead tired", "holtfáradt"],
+  ["on the premises", "helyben, telephelyen"],
+  ["fringe benefit", "munkavállalói juttatás"],
+  ["to put up with", "eltűr, beéri valamivel"],
+  ["tasty", "ízletes"],
+  ["tasteless", "íztelen"],
+  ["to finish work", "befejezi a munkát"],
+  ["on the way home", "hazafelé menet"],
+  ["to collect the children", "elmegy a gyerekekért"],
+  ["to reward", "megjutalmaz"],
+  ["to get the flat organized", "rendet rak a lakásban"],
+  ["to hang around", "lófrál, ténfereg"],
+  ["particular", "különös, sajátos"],
+  ["to mow, mowed, mown", "lenyírja (a füvet)"],
+  ["to weed", "gyomlál"],
+  ["to do the odd jobs", "elvégzi az apróbb javításokat"],
+  ["to hoover", "porszívózik"],
+  ["to sit on one's backside", "a fenekén ül"],
+  ["to air the rooms", "kiszellőzteti a szobákat"],
+  ["to empty the rubbish", "kiüríti a szemetet"],
+  ["to sweep the floor", "felsöpri a padlót"],
+  ["to dry up the plates", "eltörölgeti az edényeket"],
+  ["to be involved in", "lefoglalja valami"],
+  ["to share", "megoszt"],
+  ["to deprive of", "megfoszt valamitől"],
+  ["to find pleasure in", "örömét leli valamiben"],
+  ["selfish", "önző"],
+  ["inhuman", "embertelen"],
+  ["to restore", "visszaállít"],
+  ["efficient", "hatékony"],
+  ["to make a career", "karriert épít"],
+  ["to keep in touch", "kapcsolatot tart"],
+  ["to support", "támogat"],
+  ["properly", "megfelelően, rendesen"],
+  ["there is no way", "nincs rá lehetőség"],
+  ["to cope with", "megbirkózik valamivel"],
+  ["to go out to work", "dolgozni jár"],
+  ["to hold a high position", "magas beosztásban van"],
+  ["undivided attention", "osztatlan figyelem"],
+  ["frustrated", "csalódott, frusztrált"],
+  ["to bring up a child", "gyermeket nevel"],
+  ["to care for", "ellát, gondoskodik róla"],
+  ["ideally", "ideális esetben"],
+  ["exhaused", "kimerült"],
+  ["to make a decision", "döntést hoz"],
+  ["to give orders", "utasít, parancsolgat"],
+  ["to repair, fix, mend", "megjavít"],
+  ["to drip", "csöpög"],
+  ["to leak", "szivárog"],
+  ["to do up the house", "felújítja a házat"],
+  ["crucial", "kulcsfontosságú, létfontosságú"],
+  ["to attend to", "gondoz, ellát"],
+  ["financial situation", "anyagi helyzet"],
+  ["to settle down", "letelepszik"],
+  ["to go jogging", "kocogni megy"],
+  ["to read oneself to sleep", "olvasás közben elalszik"],
+  ["slightly", "kissé"],
+  ["to take the children on trips", "kirándulni viszi a gyerekeket"],
+  ["to manage one's time", "beosztja az idejét"],
+  ["to put off", "elhalaszt"],
+  ["to alter", "megváltoztat"],
+  ["pace of life", "élet ritmusa"],
+  ["to put something to good use", "hasznosít valamit"],
+  ["to soothe the nerves", "megnyugtatja az idegeket"]
+    ];
+
+    let fullSet = [...wordPairs];
+    let currentSet = [...wordPairs];
+    let retrySet = [];
+
+    let knownWords = new Set();
+    let needsReviewWords = new Set();
+
+    let current = {};
+    let revealMode = '';
+    let revealed = false;
+
+    const engDiv = document.getElementById("eng");
+    const hunDiv = document.getElementById("hun");
+
+    const btnWrong = document.getElementById("btnWrong");
+    const btnRight = document.getElementById("btnRight");
+
+    const totalEl = document.getElementById("total");
+    const knownEl = document.getElementById("known");
+    const needsReviewEl = document.getElementById("needsReview");
+    const remainingEl = document.getElementById("remaining");
+
+    totalEl.textContent = fullSet.length;
+
+    function updateStats() {
+      knownEl.textContent = knownWords.size;
+      needsReviewEl.textContent = needsReviewWords.size;
+      remainingEl.textContent = currentSet.length + retrySet.length;
+    }
+
+    function setButtons(enabled) {
+      btnWrong.disabled = !enabled;
+      btnRight.disabled = !enabled;
+    }
+
+    function nextCard() {
+      setButtons(false);
+      if (currentSet.length === 0) {
+        if (retrySet.length > 0) {
+          currentSet = [...retrySet];
+          retrySet = [];
+        } else {
+          engDiv.innerHTML = "🎉 Minden szót megtanultál!";
+          hunDiv.innerHTML = "";
+          updateStats();
+          return;
+        }
+      }
+
+      const index = Math.floor(Math.random() * currentSet.length);
+      const [eng, hun] = currentSet.splice(index, 1)[0];
+      current = { eng, hun };
+      revealMode = Math.random() < 0.5 ? "hun" : "eng";
+      revealed = false;
+      updateCard();
+      updateStats();
+    }
+
+    function updateCard() {
+      engDiv.innerHTML = (revealMode === "eng" && !revealed) ? "..." : current.eng;
+      hunDiv.innerHTML = (revealMode === "hun" && !revealed) ? "..." : current.hun;
+    }
+
+    function reveal() {
+      if (revealed) return;
+      revealed = true;
+      updateCard();
+      setButtons(true);
+    }
+
+    function handleWrong(event) {
+      event.stopPropagation(); // ne aktiválja a reveal-t
+      markAnswer(false);
+    }
+
+    function handleRight(event) {
+      event.stopPropagation(); // ne aktiválja a reveal-t
+      markAnswer(true);
+    }
+
+    function markAnswer(knewIt) {
+      const key = current.eng + "|" + current.hun;
+
+      if (knewIt) {
+        knownWords.add(key);
+        needsReviewWords.delete(key);
+      } else {
+        needsReviewWords.add(key);
+        retrySet.push([current.eng, current.hun]);
+      }
+
+      nextCard();
+    }
+
+    nextCard();
+  </script>
+</body>
+</html>
