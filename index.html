@@ -1,143 +1,227 @@
 <!DOCTYPE html>
-<html>
-  <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<meta http-equiv="X-UA-Compatible" content="chrome=1,IE=edge" />
-	<title>J3RC3K</title>
-	<style>
-		html {
-			height:100%;
-		}
-		body {
-			background-color:#D7CA5E;
-			margin:0;
-			height:100%;
-		}
-	</style>
-	<!-- copy these lines to your document head: -->
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J3RC3K - Informatikai Megoldások</title>
+    <meta name="description" content="Modern informatikai megoldások, webfejlesztés, szoftverfejlesztés, IT támogatás.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00d4ff;
+            --dark: #0a0a0a;
+            --gray: #1a1a1a;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--dark);
+            color: #e0e0e0;
+            line-height: 1.7;
+        }
 
-	<meta name="viewport" content="user-scalable=yes, initial-scale=1.0, width=device-width" />
-	
-<link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
-<link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
-<link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
-<link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
-<link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
-<link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
-<link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
-<link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
-<link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/manifest.json">
-<meta name="msapplication-TileColor" content="#ffffff">
-<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
-<meta name="theme-color" content="#ffffff">	
-	
+        header {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0033 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200') center/cover;
+            opacity: 0.15;
+        }
 
-	<!-- end copy -->
-  </head>
-  <body>
-	<!-- copy these lines to your document: -->
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+            padding: 0 20px;
+        }
+        .logo {
+            font-size: 5.5rem;
+            font-weight: 900;
+            letter-spacing: -6px;
+            background: linear-gradient(90deg, #00d4ff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        .tagline {
+            font-size: 1.6rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
 
-	<div id="index_hype_container" style="margin:auto;position:relative;width:100%;height:100%;overflow:hidden;">
-		<script type="text/javascript" charset="utf-8" src="index.hyperesources/index_hype_generated_script.js?99427"></script>
-	</div>
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10,10,10,0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid #222;
+        }
+        .nav-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 80px;
+        }
+        .nav-links a {
+            color: #ccc;
+            text-decoration: none;
+            margin-left: 35px;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+        .nav-links a:hover { color: var(--primary); }
 
-	<!-- end copy -->
-	
+        main { max-width: 1300px; margin: 0 auto; padding: 100px 20px; }
 
+        section { margin-bottom: 120px; }
+        h2 {
+            font-size: 3rem;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(90deg, #00d4ff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-	<!-- text content for search engines: -->
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+        }
+        .service-card {
+            background: var(--gray);
+            padding: 40px 30px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            transition: all 0.4s;
+        }
+        .service-card:hover {
+            transform: translateY(-15px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.15);
+        }
 
-	<div style="display:none" aria-hidden=true>
+        .btn {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 14px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.4s;
+        }
+        .btn:hover {
+            background: var(--primary);
+            color: #000;
+        }
 
-		<div>J</div>
-		<div>Hello,
-Mi vagyunk a jércék
-</div>
-		<div>New Text</div>
-		<div></div>
-		<div>J3RC3K</div>
-		<div>kapcsolat</div>
-		<div>cég</div>
-		<div>Hello,
-Mi vagyunk a j3rc3k
-</div>
-		<div>edu</div>
-		<div>Nyilvántartási szám:
-EV-53121330
-</div>
-		<div>Telephely:
-6721 Szeged, Szent István tér 12 - 13
-</div>
-		<div>Adószám:
-69395811-1-26
-</div>
-		<div>Cégnév:
-Jércék a Panírozásért -
-Mező-Krizsa András Mihály E.V.
-</div>
-		<div>Press Space</div>
-		<div>jelenleg nem lehet jelentkezni
-</div>
-		<div>Telefon:
-00 36 62 425 054
-</div>
-		<div>Cím:
-6721 Szeged, Szent István tér 12 - 13
-</div>
-		<div>E - mail:
-hello@j3rc3k.eu
-</div>
-		<div>Nyitvatartás:
-hétfő - csütörtök 
-9:00 - 13:00
-</div>
-		<div>@j3rc3k 2020.12.18.
-Elkészült az új weboldalunk :)
-#newsite
-</div>
-		<div>@j3rc3k 2020.12.18.
-Stay 127.0.0.1.
-Use 255.255.255.0.
-#covid19
+        footer {
+            background: #050505;
+            text-align: center;
+            padding: 60px 20px;
+            border-top: 1px solid #222;
+        }
 
-@j3rc3k 2019.12.18.
-#teamtrees
+        @media (max-width: 768px) {
+            .logo { font-size: 3.8rem; }
+            .nav-links a { margin-left: 20px; font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
 
-@j3rc3k 2019.07.12.
-A weboldalunkon karbantartást Villáskulcs végzünk a mai nap, így az ideiglenesen elérhetetlenné válhat.
-#update
+    <nav>
+        <div class="nav-container">
+            <div class="logo" style="font-size: 2rem; background: none; -webkit-text-fill-color: #00d4ff;">J3RC3K</div>
+            <div class="nav-links">
+                <a href="#szolgaltatasok">Szolgáltatások</a>
+                <a href="#rolunk">Rólunk</a>
+                <a href="#kapcsolat">Kapcsolat</a>
+            </div>
+        </div>
+    </nav>
 
-@j3rc3k 2019.07.09.
-Az Apple kinyírta a MacBook -ot, viszlát MacBook 2006 - 2019
-#rip #macbook #apple
+    <header>
+        <div class="hero-content">
+            <h1 class="logo">J3RC3K</h1>
+            <p class="tagline">Modern informatikai megoldások • Webfejlesztés • Szoftverfejlesztés • IT támogatás</p>
+            <a href="#kapcsolat" class="btn">Kapcsolatfelvétel</a>
+        </div>
+    </header>
 
-@j3rc3k 2019.07.05.
-2019.07.06. és 08.24. között telephelyünk zárva lesz szabadságolás miatt 
-#closed
+    <main>
+        <section id="szolgaltatasok">
+            <h2>Szolgáltatásaink</h2>
+            <div class="services">
+                <div class="service-card">
+                    <i class="fas fa-globe fa-3x" style="color:#00d4ff; margin-bottom:20px;"></i>
+                    <h3>Webfejlesztés</h3>
+                    <p>Modern, gyors, reszponzív weboldalak és webalkalmazások React, Next.js és Tailwind technológiákkal.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-mobile-alt fa-3x" style="color:#00d4ff; margin-bottom:20px;"></i>
+                    <h3>Mobilalkalmazás</h3>
+                    <p>Egyedi iOS és Android alkalmazások fejlesztése.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-server fa-3x" style="color:#00d4ff; margin-bottom:20px;"></i>
+                    <h3>Szerver & Felhő</h3>
+                    <p>Szerver üzemeltetés, felhő migráció (AWS, Azure, Hetzner).</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-shield-alt fa-3x" style="color:#00d4ff; margin-bottom:20px;"></i>
+                    <h3>IT Biztonság</h3>
+                    <p>Adatvédelem, cybersecurity, rendszerbiztonság.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-headset fa-3x" style="color:#00d4ff; margin-bottom:20px;"></i>
+                    <h3>IT Támogatás</h3>
+                    <p>Folyamatos üzemeltetés és helpdesk szolgáltatás.</p>
+                </div>
+                <div class="service-card">
+                    <i class="fas fa-chart-line fa-3x" style="color:#00d4ff; margin-bottom:20px;"></i>
+                    <h3>Digitalizáció</h3>
+                    <p>Üzleti folyamatok automatizálása és digitalizálása.</p>
+                </div>
+            </div>
+        </section>
 
-@j3rc3k 2019.07.01.
-Bár mi a mai napon dolgozunk, nem felejtkezünk el a mai nap névadójáról Semmelweis Ignácról az “anyák megmentőjéről”
-#semmelweis
+        <section id="rolunk">
+            <h2>Rólunk</h2>
+            <p style="max-width: 800px; margin: 0 auto; text-align: center; font-size: 1.2rem;">
+                A J3RC3K egy dinamikus informatikai vállalkozás, amely megbízható, modern és hatékony digitális megoldásokat kínál kis- és középvállalkozások számára. 
+            </p>
+        </section>
 
-@j3rc3k 2019.03.11.
-Elkészült az új weboldalunk!
-#newsite
+        <section id="kapcsolat">
+            <h2>Kapcsolat</h2>
+            <div style="text-align:center; font-size:1.3rem;">
+                <p><strong>Email:</strong> <a href="mailto:hello@j3rc3k.eu" style="color:#00d4ff;">hello@j3rc3k.eu</a></p>
+                <p><strong>Telefon:</strong> +36 62 425 054</p>
+                <p><strong>Helyszín:</strong> 6721 Szeged, Szent István tér 13</p>
+            </div>
+        </section>
+    </main>
 
-@j3rc3k 2019.01.15.
-A Jércék a Panírozásért hivatalos twitter oldala.
-#firstpost
-</div>
-		<div>@</div>
-		<div>JERCEK</div>
+    <footer>
+        <p>&copy; 2026 J3RC3K Informatikai Megoldások • Minden jog fenntartva</p>
+    </footer>
 
-	</div>
-
-	<!-- end text content: -->
-
-  </body>
+</body>
 </html>
