@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tervrajz műhely</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #dce2ea;
+      --panel: #ffffff;
+      --canvas: #e9edf2;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --orange: #f97316;
+      --shadow: 0 14px 40px rgba(16, 24, 40, .10);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      color: var(--ink);
+      background: #f4f6f8;
+      font: 14px/1.4 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app { display: grid; grid-template-rows: 64px 1fr; height: 100%; }
+    .topbar {
+      display: flex; align-items: center; gap: 22px; padding: 0 20px;
+      background: #fff; border-bottom: 1px solid var(--line); z-index: 5;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 220px; }
+    .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: #fff; background: var(--ink); font-weight: 800; }
+    .brand strong { display: block; font-size: 15px; letter-spacing: -.2px; }
+    .brand small { color: var(--muted); font-size: 11px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .action-group { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
+    .action-group.history-group { background: #f1f5ff; border-color: #dbe5ff; }
+    .action-group.save-group { background: #f0fdf4; border-color: #bbf7d0; }
+    .toolbar-divider { width: 1px; height: 28px; background: var(--line); }
+    .top-spacer { flex: 1; }
+    .save-state { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .button, .icon-button, .tool-button {
+      border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px;
+      min-height: 34px; padding: 0 11px; transition: .15s ease;
+    }
+    .button:hover, .icon-button:hover, .tool-button:hover { border-color: #aab5c5; background: #f8fafc; }
+    .button:disabled { cursor: not-allowed; opacity: .45; }
+    .button.primary { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .button.primary:hover { background: var(--blue-dark); }
+    .button.subtle { border-color: transparent; background: #f1f4f8; }
+    .workspace { display: grid; grid-template-columns: 244px minmax(0, 1fr) 278px; min-height: 0; }
+    .panel { min-height: 0; background: var(--panel); overflow: auto; }
+    .left-panel { border-right: 1px solid var(--line); padding: 18px 14px; }
+    .right-panel { border-left: 1px solid var(--line); padding: 18px 16px; }
+    .panel-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 11px; }
+    .panel-heading h2 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: #475467; }
+    .section { margin-bottom: 24px; }
+    .section p { color: var(--muted); font-size: 12px; margin: 5px 2px; }
+    .layers { display: grid; gap: 6px; }
+    .layer-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) repeat(4, 24px); align-items: center; gap: 4px; padding: 7px 5px; border: 1px solid transparent; border-radius: 9px; }
+    .layer-row:hover { background: #f6f8fb; }
+    .layer-row.active { border-color: #bfdbfe; background: #eff6ff; }
+    .layer-main { min-width: 0; text-align: left; border: 0; background: none; padding: 0; color: inherit; }
+    .layer-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .layer-meta { display: block; color: var(--muted); font-size: 10px; margin-top: 1px; }
+    .mini-button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; color: var(--muted); background: transparent; }
+    .mini-button:hover { background: #e8edf4; color: var(--ink); }
+    .mini-button:disabled { cursor: not-allowed; opacity: .3; }
+    .tools { display: grid; gap: 7px; }
+    .tool-button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+    .tool-button.active { color: var(--blue-dark); border-color: #93c5fd; background: #eff6ff; font-weight: 650; }
+    .tool-icon { display: grid; place-items: center; width: 21px; font-size: 17px; }
+    .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+    .swatch { width: 22px; height: 22px; padding: 0; border: 2px solid transparent; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+    .swatch.active { border-color: var(--blue); box-shadow: 0 0 0 2px #bfdbfe; }
+    .canvas-area { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--canvas); }
+    .canvas-toolbar { position: absolute; left: 18px; right: 18px; top: 14px; display: flex; gap: 7px; align-items: center; z-index: 3; pointer-events: none; }
+    .canvas-toolbar > * { pointer-events: auto; }
+    .zoom-group { display: flex; align-items: center; gap: 4px; margin-left: auto; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.94); box-shadow: var(--shadow); }
+    .zoom-label { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
+    .zoom-group .button { min-height: 28px; padding: 0 9px; font-size: 12px; }
+    .stage-wrap { position: absolute; inset: 0; padding: 64px 28px 28px; }
+    #stage { display: block; width: 100%; height: 100%; border-radius: 4px; background: #dfe5ec; box-shadow: var(--shadow); touch-action: none; user-select: none; }
+    .hint { position: absolute; bottom: 17px; left: 28px; color: #667085; font-size: 11px; pointer-events: none; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field { display: grid; gap: 4px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #667085; font-size: 11px; }
+    .field input { width: 100%; min-width: 0; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #fff; }
+    .field input:focus { outline: 2px solid #bfdbfe; border-color: var(--blue); }
+    .field select { width: 100%; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: #fff; }
+    .checkbox { display: flex; align-items: center; gap: 8px; color: #475467; font-size: 12px; }
+    .checkbox input { accent-color: var(--blue); }
+    .property-actions { display: flex; gap: 7px; margin-top: 12px; }
+    .property-actions .button { flex: 1; }
+    .empty { padding: 17px 9px; border: 1px dashed #cbd5e1; border-radius: 9px; color: var(--muted); font-size: 12px; text-align: center; }
+    .help { color: var(--muted); font-size: 12px; }
+    .help kbd { padding: 2px 5px; border: 1px solid #d0d5dd; border-bottom-width: 2px; border-radius: 4px; background: #f8fafc; font-size: 10px; }
+    .modal-backdrop { position: fixed; inset: 0; display: none; place-items: center; background: rgba(16,24,40,.35); z-index: 20; }
+    .modal-backdrop.open { display: grid; }
+    .modal { width: min(430px, calc(100vw - 30px)); padding: 22px; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px rgba(16,24,40,.25); }
+    .modal h2 { margin: 0 0 7px; font-size: 19px; }
+    .modal p { margin: 0 0 17px; color: var(--muted); }
+    .modal textarea, .object-textarea { width: 100%; min-height: 95px; resize: vertical; padding: 9px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    @media (max-width: 1000px) {
+      .workspace { grid-template-columns: 205px minmax(0, 1fr); }
+      .right-panel { display: none; }
+    }
+    @media (max-width: 680px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: 100%; grid-template-rows: auto 1fr; }
+      .topbar { align-items: flex-start; flex-wrap: wrap; padding: 12px; gap: 10px; }
+      .top-spacer { display: none; }
+      .save-state { order: 3; width: 100%; }
+      .workspace { min-height: 750px; grid-template-columns: 1fr; grid-template-rows: auto minmax(500px, 1fr); }
+      .left-panel { border-right: 0; border-bottom: 1px solid var(--line); display: flex; gap: 18px; overflow-x: auto; padding: 12px; }
+      .left-panel .section { min-width: 170px; margin-bottom: 0; }
+      .left-panel .section:first-child { min-width: 270px; }
+      .canvas-area { min-height: 540px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">T</div>
+        <div><strong>Tervrajz műhely</strong><small>egyszerű rajzoló építészeknek</small></div>
+      </div>
+      <div class="top-actions">
+        <div class="action-group history-group" aria-label="Előzmények">
+          <button class="button" id="undoButton" title="Visszavonás (Ctrl+Z)">↶ Vissza</button>
+          <button class="button" id="redoButton" title="Újra (Ctrl+Y)">↷ Előre</button>
+        </div>
+        <span class="toolbar-divider"></span>
+        <div class="action-group file-group" aria-label="Munka műveletek">
+          <button class="button subtle" id="newProject">Új munka</button>
+          <button class="button" id="openProject">Megnyitás</button>
+        </div>
+        <div class="action-group import-group" aria-label="Importálás">
+          <button class="button" id="importFile">Importálás</button>
+        </div>
+        <div class="action-group save-group" aria-label="Mentés">
+          <button class="button primary" id="saveProject">Munka mentése</button>
+        </div>
+        <input id="fileInput" type="file" hidden accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf">
+        <input id="projectInput" type="file" hidden accept=".tervrajz.json,.json,application/json">
+      </div>
+      <div class="top-spacer"></div>
+      <span class="save-state" id="saveState">Nincs mentett módosítás</span>
+    </header>
+
+    <div class="workspace">
+      <aside class="panel left-panel">
+        <section class="section">
+          <div class="panel-heading"><h2>Eszközök</h2></div>
+          <div class="tools">
+            <button class="tool-button active" data-tool="select"><span class="tool-icon">↖</span>Kijelölés</button>
+            <button class="tool-button" data-tool="line"><span class="tool-icon">／</span>Egyenes vonal</button>
+            <button class="tool-button" data-tool="text"><span class="tool-icon">T</span>Szövegdoboz</button>
+            <button class="tool-button" data-tool="pan"><span class="tool-icon">✥</span>Nézet mozgatása</button>
+          </div>
+        </section>
+        <section class="section">
+          <div class="panel-heading"><h2>Színek</h2></div>
+          <div class="swatches" id="swatches"></div>
+          <p id="colorName">Fekete</p>
+        </section>
+        <section class="section">
+          <div class="panel-heading"><h2>Rajzolási beállítások</h2></div>
+          <label class="checkbox"><input id="snapToggle" type="checkbox"> Rácshoz illesztés</label>
+          <label class="checkbox"><input id="magneticToggle" type="checkbox"> Mágneses vonalillesztés</label>
+          <label class="checkbox"><input id="orthogonalToggle" type="checkbox"> Csak vízszintes/függőleges</label>
+          <div class="form-grid" style="margin-top:9px"><div class="field"><label for="gridSize">Rácsköz</label><input id="gridSize" type="number" min="5" max="200" step="5" value="25"></div><div class="field"><label for="magneticDistance">Hatótáv</label><input id="magneticDistance" type="number" min="3" max="80" step="1" value="18"></div></div>
+          <button class="button subtle" id="joinLines" style="width:100%; margin-top:10px">Vonalvégek összetapasztása</button>
+          <p>Az aktív rétegen a közeli vonalvégeket közös pontra húzza.</p>
+        </section>
+        <section class="section">
+          <div class="panel-heading"><h2>Rétegek</h2><button class="mini-button" id="addLayer" title="Új réteg">＋</button></div>
+          <div class="layers" id="layers"></div>
+        </section>
+        <section class="section help">
+          <p><kbd>Ctrl</kbd> + <kbd>Z</kbd> visszavonás, <kbd>Ctrl</kbd> + <kbd>Y</kbd> újra.</p>
+          <p><kbd>Shift</kbd> húzás közben vízszintes vagy függőleges vonalat kényszerít.</p>
+          <p>Görgővel nagyíthat, a nézetet a kéz eszközzel mozgathatja.</p>
+        </section>
+      </aside>
+
+      <section class="canvas-area">
+        <div class="canvas-toolbar">
+          <button class="icon-button" id="fitView" title="Tervrajz illesztése">⌗</button>
+          <button class="icon-button" id="gridToggle" title="Rács ki/be">▦</button>
+          <div class="zoom-group">
+            <button class="mini-button" id="zoomOut">−</button>
+            <span class="zoom-label" id="zoomLabel">100%</span>
+            <button class="mini-button" id="zoomIn">＋</button>
+            <button class="button subtle" id="resetView" title="Nagyítás és eltolás visszaállítása">Középre</button>
+          </div>
+        </div>
+        <div class="stage-wrap"><svg id="stage" xmlns="http://www.w3.org/2000/svg" aria-label="Rajzfelület"></svg></div>
+        <div class="hint">Az aktív rétegre rajzol. A kijelölt vonal végpontjai húzhatók.</div>
+      </section>
+
+      <aside class="panel right-panel">
+        <section class="section">
+          <div class="panel-heading"><h2>Réteg tulajdonságai</h2></div>
+          <div id="layerProperties" class="empty">Válasszon ki egy réteget.</div>
+        </section>
+        <section class="section">
+          <div class="panel-heading"><h2>Munka</h2></div>
+          <div class="field full"><label for="projectName">Munka neve</label><input id="projectName" value="Névtelen terv"></div>
+          <div class="field full" style="margin-top:10px"><label for="orientation">Tervrajz tájolása</label><select id="orientation"><option value="landscape">Fekvő</option><option value="portrait">Álló</option></select></div>
+          <div class="form-grid" style="margin-top:10px"><div class="field"><label for="scaleValue">1 rajzi egység =</label><input id="scaleValue" type="number" min="0.0001" step="0.1" value="1"></div><div class="field"><label for="scaleUnit">Mértékegység</label><select id="scaleUnit"><option value="mm">mm</option><option value="cm" selected>cm</option><option value="m">m</option></select></div></div>
+          <p class="help">Az automatikus mentés a böngészőben, ezen a gépen tárolódik.</p>
+          <div class="property-actions"><button class="button" id="exportPng">PNG export</button><button class="button" id="exportPdf">PDF export</button></div>
+        </section>
+        <section class="section">
+          <div class="panel-heading"><h2>Gyors segítség</h2></div>
+          <p class="help">PDF-import esetén az első oldal képként kerül a tervrajz rétegbe. A rajzolt elemek ezután külön mozgathatók fölötte.</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="textModal">
+    <div class="modal">
+      <h2>Új felirat</h2>
+      <p>Írja be a felirat szövegét. Több sor is használható.</p>
+      <textarea id="textValue" autofocus placeholder="Például: nappali"></textarea>
+      <div class="modal-actions"><button class="button" id="cancelText">Mégse</button><button class="button primary" id="insertText">Felirat beszúrása</button></div>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    const $ = (selector) => document.querySelector(selector);
+    const stage = $('#stage');
+    const colors = [
+      ['#111827', 'Fekete'], ['#ffffff', 'Fehér'], ['#ef4444', 'Piros'], ['#f97316', 'Narancs'],
+      ['#f59e0b', 'Borostyán'], ['#eab308', 'Sárga'], ['#84cc16', 'Lime'], ['#22c55e', 'Zöld'],
+      ['#10b981', 'Smaragd'], ['#14b8a6', 'Türkiz'], ['#06b6d4', 'Cián'], ['#0ea5e9', 'Égkék'],
+      ['#3b82f6', 'Kék'], ['#6366f1', 'Indigó'], ['#8b5cf6', 'Lila'], ['#a855f7', 'Viola'],
+      ['#d946ef', 'Fukszia'], ['#ec4899', 'Rózsaszín'], ['#be123c', 'Bordó'], ['#78350f', 'Barna'],
+      ['#475569', 'Palaszürke'], ['#64748b', 'Szürke'], ['#94a3b8', 'Ezüst'], ['#cbd5e1', 'Világosszürke'],
+      ['#f1f5f9', 'Hófehér'], ['#064e3b', 'Sötétzöld'], ['#164e63', 'Sötétcián'], ['#1e3a8a', 'Sötétkék'],
+      ['#312e81', 'Sötétindigó'], ['#4c1d95', 'Sötétlila'], ['#701a75', 'Sötétfukszia'], ['#881337', 'Sötétrózsaszín']
+    ];
+    let state = makeState();
+    let history = [];
+    let future = [];
+    let currentTool = 'select';
+    let selectedColor = colors[0][0];
+    let gridVisible = true;
+    let view = { x: 0, y: 0, w: 1400, h: 900 };
+    let interaction = null;
+    let pendingTextPoint = null;
+    let editingTextObject = null;
+    let autosaveTimer = null;
+
+    function uid(prefix = 'id') { return prefix + '-' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); }
+    function makeState() {
+      const layer = { id: uid('layer'), name: 'Tervrajz', visible: true, locked: false, opacity: 1, x: 0, y: 0, scale: 1, rotation: 0, objects: [] };
+      return { version: 1, name: 'Névtelen terv', canvas: { width: 1400, height: 900, orientation: 'landscape', background: '#ffffff' }, settings: { snap: false, magnetic: false, magneticDistance: 18, orthogonal: false, gridSize: 25, unitValue: 1, unit: 'cm' }, layers: [layer], activeLayerId: layer.id, activeObjectId: null };
+    }
+    function ensureSettings() { state.settings = { snap: false, magnetic: false, magneticDistance: 18, orthogonal: false, gridSize: 25, unitValue: 1, unit: 'cm', ...(state.settings || {}) }; if (!state.canvas.orientation) state.canvas.orientation = state.canvas.width >= state.canvas.height ? 'landscape' : 'portrait'; }
+    function clone(value) { return JSON.parse(JSON.stringify(value)); }
+    function activeLayer() { return state.layers.find(layer => layer.id === state.activeLayerId) || state.layers[state.layers.length - 1]; }
+    function selectedObject() {
+      const layer = activeLayer();
+      return layer && layer.objects.find(object => object.id === state.activeObjectId);
+    }
+    function commit(mutator) {
+      history.push(clone(state));
+      if (history.length > 60) history.shift();
+      future = [];
+      mutator();
+      render();
+      scheduleAutosave();
+    }
+    function undo() {
+      if (!history.length) return;
+      future.push(clone(state));
+      state = history.pop();
+      render(); scheduleAutosave();
+    }
+    function redo() {
+      if (!future.length) return;
+      history.push(clone(state));
+      state = future.pop();
+      render(); scheduleAutosave();
+    }
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('[data-tool]').forEach(button => button.classList.toggle('active', button.dataset.tool === tool));
+      stage.style.cursor = tool === 'pan' ? 'grab' : tool === 'line' ? 'crosshair' : tool === 'text' ? 'text' : 'default';
+    }
+    function escapeXml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+    }
+    function layerTransform(layer) { return `translate(${layer.x} ${layer.y}) rotate(${layer.rotation}) scale(${layer.scale})`; }
+    function svgPoint(event) {
+      const point = stage.createSVGPoint();
+      point.x = event.clientX; point.y = event.clientY;
+      return point.matrixTransform(stage.getScreenCTM().inverse());
+    }
+    function isInsideCanvas(point) { return point.x >= 0 && point.y >= 0 && point.x <= state.canvas.width && point.y <= state.canvas.height; }
+    function clampCanvasPoint(point) { return { x: Math.max(0, Math.min(state.canvas.width, point.x)), y: Math.max(0, Math.min(state.canvas.height, point.y)) }; }
+    function localPoint(point, layer) {
+      const angle = -layer.rotation * Math.PI / 180;
+      const dx = point.x - layer.x, dy = point.y - layer.y;
+      return { x: (dx * Math.cos(angle) - dy * Math.sin(angle)) / layer.scale, y: (dx * Math.sin(angle) + dy * Math.cos(angle)) / layer.scale };
+    }
+    function localDelta(dx, dy, layer) {
+      const angle = -layer.rotation * Math.PI / 180;
+      return { x: (dx * Math.cos(angle) - dy * Math.sin(angle)) / layer.scale, y: (dx * Math.sin(angle) + dy * Math.cos(angle)) / layer.scale };
+    }
+    function objectLocalPoint(point, object) {
+      const centerX = object.x + object.width / 2, centerY = object.y + object.height / 2, angle = -(object.rotation || 0) * Math.PI / 180;
+      const dx = point.x - centerX, dy = point.y - centerY;
+      return { x: centerX + dx * Math.cos(angle) - dy * Math.sin(angle), y: centerY + dx * Math.sin(angle) + dy * Math.cos(angle) };
+    }
+    function snapLocalPoint(point, excludeId = null) {
+      const step = Math.max(1, Number(state.settings.gridSize) || 25);
+      let result = state.settings.snap ? { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } : point;
+      if (!state.settings.magnetic) return result;
+      const layer = activeLayer(); let nearest = null; let nearestDistance = Math.max(3, Number(state.settings.magneticDistance) || 18);
+      layer?.objects.filter(object => object.type === 'line' && object.id !== excludeId).forEach(object => [[object.x1, object.y1], [object.x2, object.y2]].forEach(([x, y]) => { const distance = Math.hypot(point.x - x, point.y - y); if (distance <= nearestDistance) { nearest = { x, y }; nearestDistance = distance; } }));
+      return nearest || result;
+    }
+    function constrainLinePoint(point, fixed, force = false) {
+      if (!state.settings.orthogonal && !force) return point;
+      return Math.abs(point.x - fixed.x) >= Math.abs(point.y - fixed.y) ? { x: point.x, y: fixed.y } : { x: fixed.x, y: point.y };
+    }
+    function gridMarkup() {
+      if (!gridVisible) return '';
+      const step = Number(state.settings.gridSize) || 25;
+      const startX = Math.max(0, Math.floor(view.x / step) - 1), endX = Math.min(Math.ceil(state.canvas.width / step), Math.ceil((view.x + view.w) / step) + 1);
+      const startY = Math.max(0, Math.floor(view.y / step) - 1), endY = Math.min(Math.ceil(state.canvas.height / step), Math.ceil((view.y + view.h) / step) + 1);
+      const lines = [];
+      for (let index = startX; index <= endX; index++) { const x = index * step; const major = index % 5 === 0; lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${state.canvas.height}" stroke="${major ? '#c2cedc' : '#dbe3ed'}" stroke-width="${major ? 1.1 : .7}" vector-effect="non-scaling-stroke"/>`); }
+      for (let index = startY; index <= endY; index++) { const y = index * step; const major = index % 5 === 0; lines.push(`<line x1="0" y1="${y}" x2="${state.canvas.width}" y2="${y}" stroke="${major ? '#c2cedc' : '#dbe3ed'}" stroke-width="${major ? 1.1 : .7}" vector-effect="non-scaling-stroke"/>`); }
+      return `<g class="grid-layer" pointer-events="none" shape-rendering="crispEdges" opacity=".72">${lines.join('')}</g>`;
+    }
+    function objectMarkup(object, selected) {
+      const common = `data-object="${object.id}"`;
+      if (object.type === 'line') {
+        return `<line ${common} x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="${object.color}" stroke-width="${object.width}" stroke-linecap="round"/><line ${common} x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="transparent" stroke-width="${Math.max(14, object.width + 10)}"/>`;
+      }
+      if (object.type === 'text') {
+        const lines = String(object.text).split('\n').map((line, index) => `<tspan x="${object.x}" dy="${index ? object.size * 1.25 : 0}">${escapeXml(line) || ' '}</tspan>`).join('');
+        const width = Math.max(55, object.text.split('\n').reduce((max, line) => Math.max(max, line.length * object.size * .56), 0));
+        const height = object.size * 1.35 * Math.max(1, object.text.split('\n').length);
+        const centerX = object.x + width / 2, centerY = object.y - object.size + height / 2;
+        return `<text ${common} x="${object.x}" y="${object.y}" transform="rotate(${object.rotation || 0} ${centerX} ${centerY})" fill="${object.color}" font-size="${object.size}" font-family="Arial, sans-serif" font-weight="500">${lines}</text>`;
+      }
+      if (object.type === 'image') {
+        const centerX = object.x + object.width / 2, centerY = object.y + object.height / 2;
+        return `<image ${common} href="${object.href}" x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" transform="rotate(${object.rotation || 0} ${centerX} ${centerY})" preserveAspectRatio="none" opacity="${object.opacity ?? 1}"/>`;
+      }
+      return '';
+    }
+    function selectionMarkup(object) {
+      if (!object) return '';
+      if (object.type === 'line') {
+        return `<g class="selection-layer" data-selection="${object.id}" pointer-events="all"><line data-object="${object.id}" x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="#2563eb" stroke-width="${Math.max(object.width + 5, 9)}" opacity=".18"/><circle data-handle="start" data-object="${object.id}" cx="${object.x1}" cy="${object.y1}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle data-handle="end" data-object="${object.id}" cx="${object.x2}" cy="${object.y2}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/></g>`;
+      }
+      if (object.type === 'image') {
+        const centerX = object.x + object.width / 2, centerY = object.y + object.height / 2, rotateY = object.y - 28, rotation = object.rotation || 0;
+        const distortLocked = object.distortLocked !== false;
+        const lockX = object.x + object.width + 24, lockY = object.y + object.height + 24;
+        const lockIcon = distortLocked
+          ? '<path d="M-5 -1 v-3 a5 5 0 0 1 10 0 v3" fill="none" stroke="#1d4ed8" stroke-width="1.6"/><rect x="-6" y="-1" width="12" height="9" rx="2" fill="#1d4ed8"/>'
+          : '<path d="M-5 -1 v-3 a5 5 0 0 1 9.4 -2.4" fill="none" stroke="#1d4ed8" stroke-width="1.6"/><rect x="-6" y="-1" width="12" height="9" rx="2" fill="#fff" stroke="#1d4ed8" stroke-width="1.6"/>';
+        const lockHandle = `<g data-handle="aspect-lock" data-object="${object.id}" transform="translate(${lockX} ${lockY})" style="cursor:pointer"><circle r="11" fill="#fff" stroke="#2563eb" stroke-width="2"/><g transform="translate(0 1)">${lockIcon}</g></g>`;
+        return `<g class="selection-layer" pointer-events="all" transform="rotate(${rotation} ${centerX} ${centerY})"><rect data-object="${object.id}" x="${object.x}" y="${object.y}" width="${object.width}" height="${object.height}" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="7 5"/><circle data-handle="image-resize-right" data-object="${object.id}" cx="${object.x + object.width}" cy="${centerY}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle data-handle="image-resize-bottom" data-object="${object.id}" cx="${centerX}" cy="${object.y + object.height}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle data-handle="resize" data-object="${object.id}" cx="${object.x + object.width}" cy="${object.y + object.height}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/><line x1="${centerX}" y1="${object.y}" x2="${centerX}" y2="${rotateY}" stroke="#2563eb" stroke-width="2"/><circle data-handle="image-rotate" data-object="${object.id}" cx="${centerX}" cy="${rotateY}" r="8" fill="#fff" stroke="#2563eb" stroke-width="2"/>${lockHandle}</g>`;
+      }
+      const width = Math.max(55, object.text.split('\n').reduce((max, line) => Math.max(max, line.length * object.size * .56), 0));
+      const height = object.size * 1.35 * Math.max(1, object.text.split('\n').length);
+      const centerX = object.x + width / 2, centerY = object.y - object.size + height / 2, rotation = object.rotation || 0;
+      const rotateY = object.y - object.size - 28;
+      return `<g class="selection-layer" pointer-events="all" transform="rotate(${rotation} ${centerX} ${centerY})"><rect data-object="${object.id}" x="${object.x - 5}" y="${object.y - object.size}" width="${width + 10}" height="${height}" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="7 5"/><circle data-handle="text-resize" data-object="${object.id}" cx="${object.x + width + 5}" cy="${object.y - object.size + height}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/><line x1="${centerX}" y1="${object.y - object.size}" x2="${centerX}" y2="${rotateY}" stroke="#2563eb" stroke-width="2"/><circle data-handle="text-rotate" data-object="${object.id}" cx="${centerX}" cy="${rotateY}" r="8" fill="#fff" stroke="#2563eb" stroke-width="2"/></g>`;
+    }
+    function render() {
+      ensureSettings();
+      const canvas = state.canvas;
+      stage.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+      const layers = state.layers.map(layer => {
+        const contents = layer.visible ? layer.objects.map(object => objectMarkup(object, object.id === state.activeObjectId && layer.id === state.activeLayerId)).join('') : '';
+        const selection = layer.id === state.activeLayerId && layer.visible ? selectionMarkup(layer.objects.find(object => object.id === state.activeObjectId)) : '';
+        return `<g data-layer="${layer.id}" transform="${layerTransform(layer)}" opacity="${layer.opacity}" style="${layer.locked ? 'pointer-events:none' : ''}">${contents}${selection}</g>`;
+      }).join('');
+      stage.innerHTML = `<rect width="${canvas.width}" height="${canvas.height}" fill="${canvas.background}"/>${gridMarkup()}${layers}`;
+      $('#zoomLabel').textContent = `${Math.round(state.canvas.width / view.w * 100)}%`;
+      $('#undoButton').disabled = history.length === 0;
+      $('#redoButton').disabled = future.length === 0;
+      renderLayers(); renderProperties(); renderSettings();
+    }
+    function renderLayers() {
+      const container = $('#layers');
+      container.innerHTML = state.layers.slice().reverse().map(layer => { const index = state.layers.indexOf(layer); return `<div class="layer-row ${layer.id === state.activeLayerId ? 'active' : ''}"><button class="mini-button" data-layer-action="visibility" data-layer-id="${layer.id}" title="Láthatóság">${layer.visible ? '◉' : '○'}</button><button class="layer-main" data-layer-action="select" data-layer-id="${layer.id}"><span class="layer-name">${escapeXml(layer.name)}</span><span class="layer-meta">${layer.objects.length} elem${layer.locked ? ' · zárolva' : ''}</span></button><button class="mini-button" data-layer-action="lock" data-layer-id="${layer.id}" title="Zárolás">${layer.locked ? '▣' : '□'}</button><button class="mini-button" data-layer-action="raise" data-layer-id="${layer.id}" title="Réteg feljebb" ${index === state.layers.length - 1 ? 'disabled' : ''}>↑</button><button class="mini-button" data-layer-action="lower" data-layer-id="${layer.id}" title="Réteg lejjebb" ${index === 0 ? 'disabled' : ''}>↓</button><button class="mini-button" data-layer-action="delete" data-layer-id="${layer.id}" title="Réteg törlése" ${state.layers.length === 1 ? 'disabled' : ''}>×</button></div>`; }).join('');
+    }
+    function formatLength(object) {
+      const length = Math.hypot(object.x2 - object.x1, object.y2 - object.y1) * Number(state.settings.unitValue || 1);
+      return `${length < 10 ? length.toFixed(2) : length.toFixed(1)} ${state.settings.unit}`;
+    }
+    function renderProperties() {
+      const layer = activeLayer();
+      if (!layer) { $('#layerProperties').innerHTML = '<div class="empty">Nincs réteg.</div>'; return; }
+      const object = selectedObject();
+      let objectFieldsMarkup = '<div class="empty" style="margin-top:12px">Nincs kijelölt elem.</div>';
+      if (object?.type === 'line') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt vonal</h2></div><div class="form-grid"><div class="field"><label for="objectWidth">Vonalvastagság</label><input id="objectWidth" type="number" min="1" max="50" step="1" value="${object.width}"></div><div class="field"><label>Hossz</label><input value="${formatLength(object)}" readonly></div></div></div>`;
+      if (object?.type === 'text') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt szöveg</h2></div><div class="field"><label for="objectText">Szöveg tartalma</label><textarea id="objectText" class="object-textarea">${escapeXml(object.text)}</textarea></div><div class="form-grid" style="margin-top:10px"><div class="field"><label for="objectSize">Szövegméret</label><input id="objectSize" type="number" min="8" max="200" step="1" value="${object.size}"></div><div class="field"><label for="objectColor">Szövegszín</label><input id="objectColor" type="color" value="${object.color}"></div><div class="field"><label for="objectRotation">Forgatás °</label><input id="objectRotation" type="number" step="1" value="${object.rotation || 0}"></div></div><div class="property-actions"><button class="button" id="rotateTextButton">↻ 90° forgatás</button></div><p class="help">A kijelölés fölötti kör fogópont húzásával szabadon forgatható. A jobb alsó fogópont méretezi.</p></div>`;
+      if (object?.type === 'image') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt importált anyag</h2></div><div class="field"><label for="objectOpacity">Kép átlátszósága: ${Math.round((object.opacity ?? 1) * 100)}%</label><input id="objectOpacity" type="range" min="0.05" max="1" step=".01" value="${object.opacity ?? 1}"></div><div class="field" style="margin-top:10px"><label for="objectRotation">Forgatás °</label><input id="objectRotation" type="number" step="1" value="${object.rotation || 0}"></div><div class="property-actions"><button class="button" id="rotateImageButton">↻ 90° forgatás</button><button class="button" id="resetAspectButton">↺ Torzítás visszaállítása</button></div><p class="help">A jobb alsó lakat ikon zárva tartja az arányt minden fogóponton; kattints rá a kioldáshoz, hogy a jobb oldali és az alsó fogóponttal külön-külön torzíthasd a szélességet, illetve a magasságot.</p></div>`;
+      $('#layerProperties').innerHTML = `<div class="form-grid"><div class="field full"><label for="layerName">Réteg neve</label><input id="layerName" value="${escapeXml(layer.name)}"></div><div class="field"><label for="layerX">X mozgatás</label><input id="layerX" type="number" step="1" value="${layer.x}"></div><div class="field"><label for="layerY">Y mozgatás</label><input id="layerY" type="number" step="1" value="${layer.y}"></div><div class="field"><label for="layerScale">Méretezés</label><input id="layerScale" type="number" min=".1" max="8" step=".05" value="${layer.scale}"></div><div class="field"><label for="layerRotation">Forgatás °</label><input id="layerRotation" type="number" step="1" value="${layer.rotation}"></div><div class="field full"><label for="layerOpacity">Átlátszóság: ${Math.round(layer.opacity * 100)}%</label><input id="layerOpacity" type="range" min="0" max="1" step=".01" value="${layer.opacity}"></div><label class="checkbox"><input id="layerVisible" type="checkbox" ${layer.visible ? 'checked' : ''}> Látható</label><label class="checkbox"><input id="layerLocked" type="checkbox" ${layer.locked ? 'checked' : ''}> Zárolt</label></div><div class="property-actions"><button class="button" id="deleteLayer">Réteg törlése</button><button class="button" id="duplicateLayer">Másolat</button></div>${objectFieldsMarkup}`;
+      bindPropertyEvents();
+    }
+    function bindPropertyEvents() {
+      const layer = activeLayer();
+      if (!layer) return;
+      const bind = (id, key, parser = value => value) => $(id).addEventListener('change', event => commit(() => { layer[key] = parser(event.target.value); }));
+      bind('#layerName', 'name'); bind('#layerX', 'x', Number); bind('#layerY', 'y', Number); bind('#layerScale', 'scale', value => Math.max(.1, Number(value) || 1)); bind('#layerRotation', 'rotation', Number); bind('#layerOpacity', 'opacity', Number);
+      $('#layerVisible').addEventListener('change', event => commit(() => { layer.visible = event.target.checked; }));
+      $('#layerLocked').addEventListener('change', event => commit(() => { layer.locked = event.target.checked; }));
+      const object = selectedObject();
+      if (object && $('#objectWidth')) $('#objectWidth').addEventListener('change', event => commit(() => { object.width = Math.max(1, Number(event.target.value) || 4); }));
+      if (object && $('#objectSize')) $('#objectSize').addEventListener('change', event => commit(() => { object.size = Math.max(8, Number(event.target.value) || 24); }));
+      if (object && $('#objectText')) $('#objectText').addEventListener('change', event => commit(() => { object.text = event.target.value || ' '; }));
+      if (object && $('#objectColor')) $('#objectColor').addEventListener('change', event => { selectedColor = event.target.value; commit(() => { object.color = event.target.value; }); renderSwatches(); });
+      if (object && $('#objectRotation')) $('#objectRotation').addEventListener('change', event => commit(() => { object.rotation = Number(event.target.value) || 0; }));
+      if (object && $('#rotateTextButton')) $('#rotateTextButton').addEventListener('click', () => commit(() => { object.rotation = (Number(object.rotation) || 0) + 90; }));
+      if (object && $('#rotateImageButton')) $('#rotateImageButton').addEventListener('click', () => commit(() => { object.rotation = (Number(object.rotation) || 0) + 90; }));
+      if (object && $('#objectOpacity')) $('#objectOpacity').addEventListener('change', event => commit(() => { object.opacity = Math.max(.05, Math.min(1, Number(event.target.value) || 1)); }));
+      if (object && $('#resetAspectButton')) $('#resetAspectButton').addEventListener('click', () => {
+        const target = object; const width = target.width;
+        const probe = new Image();
+        probe.onload = () => { const ratio = probe.naturalWidth / probe.naturalHeight || 1; commit(() => { target.width = width; target.height = width / ratio; target.naturalRatio = ratio; }); };
+        probe.onerror = () => { const ratio = target.naturalRatio || (target.width / Math.max(1, target.height)); commit(() => { target.height = target.width / ratio; }); };
+        probe.src = target.href;
+      });
+      $('#deleteLayer').addEventListener('click', () => { if (state.layers.length === 1) return alert('Legalább egy rétegnek maradnia kell.'); commit(() => { state.layers = state.layers.filter(item => item.id !== layer.id); state.activeLayerId = state.layers[state.layers.length - 1].id; state.activeObjectId = null; }); });
+      $('#duplicateLayer').addEventListener('click', () => commit(() => { const copy = clone(layer); copy.id = uid('layer'); copy.name = layer.name + ' másolata'; copy.objects.forEach(object => object.id = uid('object')); state.layers.splice(state.layers.indexOf(layer) + 1, 0, copy); state.activeLayerId = copy.id; state.activeObjectId = null; }));
+    }
+    function renderSettings() {
+      ensureSettings();
+      $('#snapToggle').checked = state.settings.snap;
+      $('#magneticToggle').checked = state.settings.magnetic;
+      $('#orthogonalToggle').checked = state.settings.orthogonal;
+      $('#gridSize').value = state.settings.gridSize;
+      $('#magneticDistance').value = state.settings.magneticDistance;
+      $('#orientation').value = state.canvas.orientation;
+      $('#scaleValue').value = state.settings.unitValue;
+      $('#scaleUnit').value = state.settings.unit;
+    }
+    function renderSwatches() {
+      $('#swatches').innerHTML = colors.map(([color, name]) => `<button class="swatch ${color === selectedColor ? 'active' : ''}" style="background:${color}" data-color="${color}" title="${name}"></button>`).join('');
+      $('#colorName').textContent = colors.find(item => item[0] === selectedColor)?.[1] || 'Egyéni szín';
+    }
+    function selectedLayerIsUsable() {
+      const layer = activeLayer();
+      if (!layer) return false;
+      if (layer.locked) { alert('Ez a réteg zárolva van.'); return false; }
+      if (!layer.visible) { alert('Ez a réteg nem látható.'); return false; }
+      return true;
+    }
+    function createTextAt(point) {
+      pendingTextPoint = point;
+      editingTextObject = null;
+      $('#textValue').value = '';
+      $('#textModal h2').textContent = 'Új felirat';
+      $('#insertText').textContent = 'Felirat beszúrása';
+      $('#textModal').classList.add('open');
+      setTimeout(() => $('#textValue').focus(), 20);
+    }
+    function editTextObject(object) {
+      pendingTextPoint = null;
+      editingTextObject = object;
+      $('#textValue').value = object.text;
+      $('#textModal h2').textContent = 'Szöveg szerkesztése';
+      $('#insertText').textContent = 'Módosítás mentése';
+      $('#textModal').classList.add('open');
+      setTimeout(() => $('#textValue').focus(), 20);
+    }
+    function insertText() {
+      const text = $('#textValue').value.trim();
+      if (!text) { $('#textModal').classList.remove('open'); editingTextObject = null; pendingTextPoint = null; return; }
+      if (editingTextObject) {
+        const object = editingTextObject;
+        commit(() => { object.text = text; });
+        editingTextObject = null;
+        $('#textModal').classList.remove('open');
+        return;
+      }
+      if (!pendingTextPoint) { $('#textModal').classList.remove('open'); return; }
+      const layer = activeLayer(); const local = snapLocalPoint(localPoint(pendingTextPoint, layer));
+      commit(() => { const object = { id: uid('text'), type: 'text', text, x: local.x, y: local.y, size: 24, color: selectedColor }; layer.objects.push(object); state.activeObjectId = object.id; });
+      pendingTextPoint = null; $('#textModal').classList.remove('open'); setTool('select');
+    }
+    function deleteSelected() {
+      const layer = activeLayer(); if (!layer || !state.activeObjectId || layer.locked) return;
+      commit(() => { layer.objects = layer.objects.filter(object => object.id !== state.activeObjectId); state.activeObjectId = null; });
+    }
+    function startInteraction(event) {
+      const rawPoint = svgPoint(event);
+      if (currentTool === 'pan') { interaction = { kind: 'pan', start: rawPoint, original: clone(view) }; stage.setPointerCapture?.(event.pointerId); return; }
+      if (!isInsideCanvas(rawPoint)) return;
+      const point = clampCanvasPoint(rawPoint);
+      const layer = activeLayer();
+      if (!layer || !selectedLayerIsUsable()) return;
+      const target = event.target.closest?.('[data-object]');
+      const handle = event.target.closest?.('[data-handle]');
+      if (currentTool === 'line') {
+        const local = snapLocalPoint(localPoint(point, layer)); const object = { id: uid('line'), type: 'line', x1: local.x, y1: local.y, x2: local.x, y2: local.y, color: selectedColor, width: 4 };
+        history.push(clone(state)); future = []; layer.objects.push(object); state.activeObjectId = object.id; interaction = { kind: 'draw-line', object, layer, start: point }; render(); stage.setPointerCapture?.(event.pointerId); return;
+      }
+      if (currentTool === 'text') { createTextAt(point); return; }
+      if (handle && handle.dataset.handle === 'aspect-lock' && state.activeObjectId) {
+        const object = selectedObject();
+        if (object) commit(() => { object.distortLocked = object.distortLocked === false; });
+        return;
+      }
+      if (handle && state.activeObjectId) {
+        history.push(clone(state)); future = [];
+        const object = selectedObject(); let centerX = 0, centerY = 0;
+        if (object?.type === 'text') { const longestLine = Math.max(1, ...object.text.split('\n').map(line => line.length)); const textWidth = Math.max(55, longestLine * object.size * .56); centerX = object.x + textWidth / 2; centerY = object.y - object.size + (object.size * 1.35 * Math.max(1, object.text.split('\n').length)) / 2; }
+        if (object?.type === 'image') { centerX = object.x + object.width / 2; centerY = object.y + object.height / 2; }
+        const localStart = localPoint(point, layer);
+        const rotateHandle = handle.dataset.handle === 'text-rotate' || handle.dataset.handle === 'image-rotate';
+        interaction = { kind: handle.dataset.handle, object, layer, start: point, startAngle: rotateHandle ? Math.atan2(localStart.y - centerY, localStart.x - centerX) : 0, startRotation: object?.rotation || 0 };
+        stage.setPointerCapture?.(event.pointerId); return;
+      }
+      if (target) {
+        const object = layer.objects.find(item => item.id === target.dataset.object);
+        if (object) { state.activeObjectId = object.id; history.push(clone(state)); future = []; interaction = { kind: 'move-object', object, layer, start: point }; render(); stage.setPointerCapture?.(event.pointerId); return; }
+      }
+      state.activeObjectId = null; render();
+    }
+    function moveInteraction(event) {
+      if (!interaction) return;
+      const rawPoint = svgPoint(event); const { layer } = interaction;
+      if (interaction.kind === 'pan') { const dx = rawPoint.x - interaction.start.x, dy = rawPoint.y - interaction.start.y; view.x = interaction.original.x - dx; view.y = interaction.original.y - dy; render(); return; }
+      const point = clampCanvasPoint(rawPoint);
+      if (interaction.kind === 'draw-line') { let local = localPoint(point, layer); const fixed = { x: interaction.object.x1, y: interaction.object.y1 }; local = constrainLinePoint(local, fixed, event.shiftKey); local = snapLocalPoint(local); local = constrainLinePoint(local, fixed, event.shiftKey); interaction.object.x2 = local.x; interaction.object.y2 = local.y; render(); return; }
+      if (interaction.kind === 'start' || interaction.kind === 'end') { let local = localPoint(point, layer); const fixed = interaction.kind === 'start' ? { x: interaction.object.x2, y: interaction.object.y2 } : { x: interaction.object.x1, y: interaction.object.y1 }; local = constrainLinePoint(local, fixed, event.shiftKey); local = snapLocalPoint(local, interaction.object.id); local = constrainLinePoint(local, fixed, event.shiftKey); if (interaction.kind === 'start') { interaction.object.x1 = local.x; interaction.object.y1 = local.y; } else { interaction.object.x2 = local.x; interaction.object.y2 = local.y; } render(); return; }
+      if (interaction.kind === 'text-resize') { const local = localPoint(point, layer); const longestLine = Math.max(1, ...interaction.object.text.split('\n').map(line => line.length)); interaction.object.size = Math.max(8, Math.min(200, (local.x - interaction.object.x - 5) / (longestLine * .56))); render(); return; }
+      if (interaction.kind === 'text-rotate') { const local = localPoint(point, layer); const longestLine = Math.max(1, ...interaction.object.text.split('\n').map(line => line.length)); const width = Math.max(55, longestLine * interaction.object.size * .56); const height = interaction.object.size * 1.35 * Math.max(1, interaction.object.text.split('\n').length); const centerX = interaction.object.x + width / 2; const centerY = interaction.object.y - interaction.object.size + height / 2; const angle = Math.atan2(local.y - centerY, local.x - centerX); interaction.object.rotation = interaction.startRotation + (angle - interaction.startAngle) * 180 / Math.PI; render(); return; }
+      if (interaction.kind === 'image-rotate') { const local = localPoint(point, layer); const centerX = interaction.object.x + interaction.object.width / 2, centerY = interaction.object.y + interaction.object.height / 2; const angle = Math.atan2(local.y - centerY, local.x - centerX); interaction.object.rotation = interaction.startRotation + (angle - interaction.startAngle) * 180 / Math.PI; render(); return; }
+      if (interaction.kind === 'image-resize-right') {
+        const local = objectLocalPoint(localPoint(point, layer), interaction.object); const obj = interaction.object;
+        const newWidth = Math.max(20, local.x - obj.x);
+        if (obj.distortLocked !== false) { const ratio = obj.width / Math.max(1, obj.height); obj.width = newWidth; obj.height = newWidth / ratio; } else obj.width = newWidth;
+        render(); return;
+      }
+      if (interaction.kind === 'image-resize-bottom') {
+        const local = objectLocalPoint(localPoint(point, layer), interaction.object); const obj = interaction.object;
+        const newHeight = Math.max(20, local.y - obj.y);
+        if (obj.distortLocked !== false) { const ratio = obj.width / Math.max(1, obj.height); obj.height = newHeight; obj.width = newHeight * ratio; } else obj.height = newHeight;
+        render(); return;
+      }
+      if (interaction.kind === 'resize') {
+        const local = objectLocalPoint(localPoint(point, layer), interaction.object);
+        const ratio = interaction.object.width / Math.max(1, interaction.object.height);
+        const requestedWidth = Math.max(20, local.x - interaction.object.x), requestedHeight = Math.max(20, local.y - interaction.object.y);
+        if (requestedWidth / ratio >= requestedHeight) { interaction.object.width = requestedWidth; interaction.object.height = requestedWidth / ratio; }
+        else { interaction.object.height = requestedHeight; interaction.object.width = requestedHeight * ratio; }
+        render(); return;
+      }
+      if (interaction.kind === 'move-object') {
+        const delta = localDelta(point.x - interaction.start.x, point.y - interaction.start.y, layer); const object = interaction.object;
+        if (object.type === 'line') { object.x1 += delta.x; object.y1 += delta.y; object.x2 += delta.x; object.y2 += delta.y; if (state.settings.magnetic) { const start = snapLocalPoint({ x: object.x1, y: object.y1 }, object.id); const end = snapLocalPoint({ x: object.x2, y: object.y2 }, object.id); object.x1 = start.x; object.y1 = start.y; object.x2 = end.x; object.y2 = end.y; } }
+        else { object.x += delta.x; object.y += delta.y; }
+        interaction.start = point; render();
+      }
+    }
+    function endInteraction() {
+      if (!interaction) return;
+      if (interaction.kind === 'draw-line' && Math.hypot(interaction.object.x2 - interaction.object.x1, interaction.object.y2 - interaction.object.y1) < 3) {
+        activeLayer().objects = activeLayer().objects.filter(item => item.id !== interaction.object.id);
+        state.activeObjectId = null;
+        history.pop();
+      }
+      interaction = null; render(); scheduleAutosave();
+    }
+    function zoomAt(factor, center) {
+      const point = center || { x: view.x + view.w / 2, y: view.y + view.h / 2 };
+      const nextW = Math.max(120, Math.min(state.canvas.width * 4, view.w * factor)); const nextH = nextW * view.h / view.w;
+      view.x = point.x - (point.x - view.x) * nextW / view.w; view.y = point.y - (point.y - view.y) * nextH / view.h; view.w = nextW; view.h = nextH; render();
+    }
+    function fitView() { view = { x: 0, y: 0, w: state.canvas.width, h: state.canvas.height }; render(); }
+    function setOrientation(orientation) {
+      if (orientation !== 'landscape' && orientation !== 'portrait') return;
+      if (state.canvas.orientation === orientation) return;
+      commit(() => { state.canvas.orientation = orientation; state.canvas.width = orientation === 'landscape' ? 1400 : 900; state.canvas.height = orientation === 'landscape' ? 900 : 1400; });
+      fitView();
+    }
+    function addLayer() { commit(() => { const layer = { id: uid('layer'), name: 'Új réteg', visible: true, locked: false, opacity: 1, x: 0, y: 0, scale: 1, rotation: 0, objects: [] }; state.layers.push(layer); state.activeLayerId = layer.id; state.activeObjectId = null; }); }
+    function joinNearbyLines() {
+      const layer = activeLayer();
+      if (!layer) return;
+      if (layer.locked) { alert('Ez a réteg zárolva van.'); return; }
+      const lines = layer.objects.filter(object => object.type === 'line'); const tolerance = Math.max(3, Number(state.settings.magneticDistance) || 18); const endpoints = [];
+      lines.forEach(line => { endpoints.push({ line, end: 'start', x: line.x1, y: line.y1 }, { line, end: 'end', x: line.x2, y: line.y2 }); });
+      const pairs = [];
+      for (let first = 0; first < endpoints.length; first++) for (let second = first + 1; second < endpoints.length; second++) { const a = endpoints[first], b = endpoints[second]; if (a.line.id !== b.line.id && Math.hypot(a.x - b.x, a.y - b.y) <= tolerance) pairs.push([a, b]); }
+      if (!pairs.length) { alert('Nem találtam egymáshoz elég közeli vonalvégeket ezen a rétegen.'); return; }
+      commit(() => pairs.forEach(([a, b]) => { const x = (a.line[a.end === 'start' ? 'x1' : 'x2'] + b.line[b.end === 'start' ? 'x1' : 'x2']) / 2; const y = (a.line[a.end === 'start' ? 'y1' : 'y2'] + b.line[b.end === 'start' ? 'y1' : 'y2']) / 2; if (a.end === 'start') { a.line.x1 = x; a.line.y1 = y; } else { a.line.x2 = x; a.line.y2 = y; } if (b.end === 'start') { b.line.x1 = x; b.line.y1 = y; } else { b.line.x2 = x; b.line.y2 = y; } }));
+    }
+    function handleLayerAction(event) {
+      const action = event.target.closest('[data-layer-action]')?.dataset.layerAction; const id = event.target.closest('[data-layer-id]')?.dataset.layerId; if (!action || !id) return;
+      const layer = state.layers.find(item => item.id === id); if (!layer) return;
+      if (action === 'select') { state.activeLayerId = id; state.activeObjectId = null; render(); return; }
+      if (action === 'delete') { if (state.layers.length === 1) return; if (!confirm(`Töröljem a(z) „${layer.name}” réteget?`)) return; commit(() => { const index = state.layers.indexOf(layer); state.layers.splice(index, 1); if (state.activeLayerId === id) { const nextLayer = state.layers[Math.max(0, index - 1)] || state.layers[0]; state.activeLayerId = nextLayer.id; state.activeObjectId = null; } }); return; }
+      commit(() => { const index = state.layers.indexOf(layer); if (action === 'visibility') layer.visible = !layer.visible; if (action === 'lock') layer.locked = !layer.locked; if (action === 'raise' && index < state.layers.length - 1) [state.layers[index], state.layers[index + 1]] = [state.layers[index + 1], state.layers[index]]; if (action === 'lower' && index > 0) [state.layers[index], state.layers[index - 1]] = [state.layers[index - 1], state.layers[index]]; });
+    }
+    function fileToDataUrl(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); }
+    function loadPdfLibrary() {
+      if (window.pdfjsLib) return Promise.resolve();
+      return new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; script.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; resolve(); }; script.onerror = () => reject(new Error('A PDF-könyvtár nem töltődött be.')); document.head.appendChild(script); });
+    }
+    async function importFile(file) {
+      if (!file) return;
+      try {
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        let dataUrls;
+        if (isPdf) {
+          const selection = prompt('Melyik PDF-oldalt importáljam? Írjon be egy oldalszámot, vagy írja be: mind', '1');
+          if (!selection) return;
+          dataUrls = await pdfPages(file, selection);
+        } else dataUrls = [await fileToDataUrl(file)];
+        const images = await Promise.all(dataUrls.map(dataUrl => new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve({ image, dataUrl }); image.onerror = () => reject(new Error('A kép nem olvasható.')); image.src = dataUrl; })));
+        const baseName = file.name.replace(/\.[^.]+$/, '') || 'Importált alaplap';
+        const imported = images.map(({ image, dataUrl }, index) => { const layer = { id: uid('layer'), name: images.length > 1 ? `${baseName} - ${index + 1}. oldal` : baseName, visible: index === 0, locked: false, opacity: 1, x: 0, y: 0, scale: 1, rotation: 0, objects: [] }; const maxW = state.canvas.width - 80, maxH = state.canvas.height - 80, ratio = Math.min(maxW / image.width, maxH / image.height, 1); const object = { id: uid('image'), type: 'image', href: dataUrl, x: (state.canvas.width - image.width * ratio) / 2, y: (state.canvas.height - image.height * ratio) / 2, width: image.width * ratio, height: image.height * ratio, opacity: .72, naturalRatio: image.width / image.height, distortLocked: true }; layer.objects.push(object); return { layer, object }; });
+        commit(() => { imported.forEach(({ layer }) => state.layers.push(layer)); state.activeLayerId = imported[0].layer.id; state.activeObjectId = imported[0].object.id; });
+      } catch (error) { alert('Az importálás nem sikerült: ' + error.message); }
+    }
+    async function pdfPages(file, selection) {
+      await loadPdfLibrary();
+      if (!window.pdfjsLib) throw new Error('A PDF.js nem érhető el. PDF-importhoz internetkapcsolat szükséges.');
+      const buffer = await file.arrayBuffer(); const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise; const value = selection.trim().toLowerCase(); const pageNumbers = value === 'mind' || value === 'all' ? Array.from({ length: pdf.numPages }, (_, index) => index + 1) : [Math.max(1, Math.min(pdf.numPages, Number.parseInt(value, 10) || 1))];
+      const pages = [];
+      for (const pageNumber of pageNumbers) { const page = await pdf.getPage(pageNumber); const viewport = page.getViewport({ scale: 1.5 }); const canvas = document.createElement('canvas'); canvas.width = viewport.width; canvas.height = viewport.height; await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise; pages.push(canvas.toDataURL('image/png')); }
+      return pages;
+    }
+    async function renderExportCanvas() {
+      const exportSvg = stage.cloneNode(true); exportSvg.querySelectorAll('.selection-layer').forEach(node => node.remove()); exportSvg.setAttribute('viewBox', `0 0 ${state.canvas.width} ${state.canvas.height}`); exportSvg.setAttribute('width', state.canvas.width); exportSvg.setAttribute('height', state.canvas.height); exportSvg.style.background = state.canvas.background;
+      const svgData = new XMLSerializer().serializeToString(exportSvg); const url = URL.createObjectURL(new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' }));
+      return new Promise((resolve, reject) => { const image = new Image(); image.onload = () => { const canvas = document.createElement('canvas'); canvas.width = state.canvas.width; canvas.height = state.canvas.height; const context = canvas.getContext('2d'); context.fillStyle = state.canvas.background; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0); URL.revokeObjectURL(url); resolve(canvas); }; image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('A rajz exportálása nem sikerült.')); }; image.src = url; });
+    }
+    async function exportPng() { try { const canvas = await renderExportCanvas(); const link = document.createElement('a'); link.download = (state.name || 'tervrajz') + '.png'; link.href = canvas.toDataURL('image/png'); link.click(); } catch (error) { alert(error.message); } }
+    function dataUrlBytes(dataUrl) { const binary = atob(dataUrl.split(',')[1]); const bytes = new Uint8Array(binary.length); for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index); return bytes; }
+    async function exportPdf() {
+      try {
+        const canvas = await renderExportCanvas(); const jpeg = dataUrlBytes(canvas.toDataURL('image/jpeg', .92)); const portrait = canvas.height > canvas.width; const pageW = portrait ? 595 : 842, pageH = portrait ? 842 : 595; const imageRatio = canvas.width / canvas.height; const drawW = imageRatio > pageW / pageH ? pageW : pageH * imageRatio; const drawH = drawW / imageRatio; const x = (pageW - drawW) / 2, y = (pageH - drawH) / 2; const encoder = new TextEncoder(); const chunks = [], offsets = [0]; let length = 0;
+        const text = value => { const bytes = encoder.encode(value); chunks.push(bytes); length += bytes.length; }; const binary = value => { chunks.push(value); length += value.length; }; const object = (number, value) => { offsets[number] = length; text(`${number} 0 obj\n`); typeof value === 'string' ? text(value) : binary(value); text('\nendobj\n'); };
+        text('%PDF-1.4\n%\xff\xff\xff\xff\n'); object(1, '<< /Type /Catalog /Pages 2 0 R >>'); object(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>'); object(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>`); const stream = `q\n${drawW} 0 0 ${drawH} ${x} ${y} cm\n/Im0 Do\nQ\n`; object(4, `<< /Length ${encoder.encode(stream).length} >>\nstream\n${stream}endstream`); object(5, new Uint8Array([...encoder.encode(`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`), ...jpeg, ...encoder.encode('\nendstream')])); const xref = length; text(`xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map(offset => String(offset).padStart(10, '0') + ' 00000 n ').join('\n')}\ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`); const result = new Uint8Array(length); let cursor = 0; chunks.forEach(chunk => { result.set(chunk, cursor); cursor += chunk.length; }); const link = document.createElement('a'); link.download = (state.name || 'tervrajz') + '.pdf'; link.href = URL.createObjectURL(new Blob([result], { type: 'application/pdf' })); link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      } catch (error) { alert(error.message); }
+    }
+    function saveProject() { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.download = (state.name || 'tervrajz') + '.tervrajz.json'; link.href = URL.createObjectURL(blob); link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); $('#saveState').textContent = 'Munka letöltve'; }
+    function openProject(file) { const reader = new FileReader(); reader.onload = () => { try { const loaded = JSON.parse(reader.result); if (!loaded.canvas || !Array.isArray(loaded.layers)) throw new Error('Ismeretlen fájlformátum'); history = []; future = []; state = loaded; view = { x: 0, y: 0, w: state.canvas.width, h: state.canvas.height }; render(); $('#saveState').textContent = 'Munka megnyitva'; } catch (error) { alert('A munka nem nyitható meg: ' + error.message); } }; reader.readAsText(file); }
+    function scheduleAutosave() { clearTimeout(autosaveTimer); $('#saveState').textContent = 'Mentetlen módosítás'; autosaveTimer = setTimeout(async () => { try { localStorage.setItem('tervrajz-autosave', JSON.stringify(state)); $('#saveState').textContent = 'Automatikusan mentve'; } catch (error) { $('#saveState').textContent = 'Az automatikus mentés nem sikerült'; } }, 700); }
+    function restoreAutosave() { try { const saved = localStorage.getItem('tervrajz-autosave'); if (!saved) return; const parsed = JSON.parse(saved); if (parsed.canvas && parsed.layers?.length) { if (confirm('Találtam egy korábbi automatikus mentést. Megnyissa?')) { state = parsed; view = { x: 0, y: 0, w: state.canvas.width, h: state.canvas.height }; } } } catch (error) { localStorage.removeItem('tervrajz-autosave'); } }
+
+    document.querySelectorAll('[data-tool]').forEach(button => button.addEventListener('click', () => setTool(button.dataset.tool)));
+    $('#swatches').addEventListener('click', event => { const color = event.target.closest('[data-color]')?.dataset.color; if (!color) return; selectedColor = color; const object = selectedObject(); if (object && (object.type === 'line' || object.type === 'text')) commit(() => { object.color = color; }); renderSwatches(); });
+    $('#layers').addEventListener('click', handleLayerAction);
+    $('#addLayer').addEventListener('click', addLayer);
+    $('#stage').addEventListener('pointerdown', startInteraction); window.addEventListener('pointermove', moveInteraction); window.addEventListener('pointerup', endInteraction);
+    $('#stage').addEventListener('dblclick', event => { const target = event.target.closest?.('[data-object]'); const layerElement = target?.closest?.('[data-layer]'); const layer = state.layers.find(item => item.id === layerElement?.dataset.layer); const object = layer?.objects.find(item => item.id === target?.dataset.object); if (object?.type === 'text' && !layer.locked) { state.activeLayerId = layer.id; state.activeObjectId = object.id; render(); editTextObject(object); } });
+    $('#stage').addEventListener('wheel', event => { event.preventDefault(); zoomAt(event.deltaY > 0 ? 1.1 : .9, svgPoint(event)); }, { passive: false });
+    $('#undoButton').addEventListener('click', undo); $('#redoButton').addEventListener('click', redo);
+    $('#zoomIn').addEventListener('click', () => zoomAt(.8)); $('#zoomOut').addEventListener('click', () => zoomAt(1.25)); $('#fitView').addEventListener('click', fitView); $('#resetView').addEventListener('click', fitView); $('#gridToggle').addEventListener('click', () => { gridVisible = !gridVisible; render(); });
+    $('#snapToggle').addEventListener('change', event => commit(() => { state.settings.snap = event.target.checked; }));
+    $('#magneticToggle').addEventListener('change', event => commit(() => { state.settings.magnetic = event.target.checked; }));
+    $('#orthogonalToggle').addEventListener('change', event => commit(() => { state.settings.orthogonal = event.target.checked; }));
+    $('#gridSize').addEventListener('change', event => commit(() => { state.settings.gridSize = Math.max(5, Math.min(200, Number(event.target.value) || 25)); }));
+    $('#magneticDistance').addEventListener('change', event => commit(() => { state.settings.magneticDistance = Math.max(3, Math.min(80, Number(event.target.value) || 18)); }));
+    $('#orientation').addEventListener('change', event => setOrientation(event.target.value));
+    $('#scaleValue').addEventListener('change', event => commit(() => { state.settings.unitValue = Math.max(.0001, Number(event.target.value) || 1); }));
+    $('#scaleUnit').addEventListener('change', event => commit(() => { state.settings.unit = event.target.value; }));
+    $('#joinLines').addEventListener('click', joinNearbyLines);
+    $('#newProject').addEventListener('click', () => { if (confirm('Új munkát kezd? A jelenlegi munka csak akkor marad meg, ha előtte elmenti.')) { history = []; future = []; state = makeState(); fitView(); render(); } });
+    $('#saveProject').addEventListener('click', saveProject); $('#openProject').addEventListener('click', () => $('#projectInput').click()); $('#projectInput').addEventListener('change', event => openProject(event.target.files[0])); $('#importFile').addEventListener('click', () => $('#fileInput').click()); $('#fileInput').addEventListener('change', event => importFile(event.target.files[0])); $('#exportPng').addEventListener('click', exportPng); $('#exportPdf').addEventListener('click', exportPdf);
+    $('#projectName').addEventListener('input', event => { state.name = event.target.value; scheduleAutosave(); }); $('#insertText').addEventListener('click', insertText); $('#cancelText').addEventListener('click', () => { pendingTextPoint = null; editingTextObject = null; $('#textModal').classList.remove('open'); }); $('#textModal').addEventListener('click', event => { if (event.target.id === 'textModal') $('#cancelText').click(); });
+    window.addEventListener('keydown', event => { if (event.key === 'Escape') { interaction = null; $('#cancelText').click(); setTool('select'); render(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); } if (event.key === 'Delete' || event.key === 'Backspace') { if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) deleteSelected(); } });
+    restoreAutosave(); $('#projectName').value = state.name; renderSwatches(); render();
+  </script>
+</body>
+</html>
