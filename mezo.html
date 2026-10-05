@@ -82,7 +82,12 @@
     .zoom-group { display: flex; align-items: center; gap: 4px; margin-left: auto; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.94); box-shadow: var(--shadow); }
     .zoom-label { min-width: 48px; text-align: center; font-size: 12px; color: var(--muted); }
     .zoom-group .button { min-height: 28px; padding: 0 9px; font-size: 12px; }
-    .stage-wrap { position: absolute; inset: 0; padding: 64px 28px 28px; }
+    .stage-wrap { position: absolute; inset: 0; padding: 86px 28px 28px 50px; }
+    .ruler { position: absolute; display: block; background: #f8fafc; z-index: 2; touch-action: none; user-select: none; }
+    .ruler-top { top: 64px; left: 50px; width: calc(100% - 78px); height: 22px; border-bottom: 1px solid #cbd5e1; cursor: row-resize; }
+    .ruler-left { top: 86px; left: 28px; bottom: 28px; width: 22px; height: calc(100% - 114px); border-right: 1px solid #cbd5e1; cursor: col-resize; }
+    .ruler-corner { position: absolute; top: 64px; left: 28px; width: 22px; height: 22px; padding: 0; border: 0; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; background: #eef2f7; color: #0891b2; font-size: 12px; z-index: 2; }
+    .ruler-corner.off { color: #94a3b8; }
     #stage { display: block; width: 100%; height: 100%; border-radius: 4px; background: #dfe5ec; box-shadow: var(--shadow); touch-action: none; user-select: none; }
     .hint { position: absolute; bottom: 17px; left: 28px; color: #667085; font-size: 11px; pointer-events: none; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -161,6 +166,8 @@
           <div class="tools">
             <button class="tool-button active" data-tool="select"><span class="tool-icon">↖</span>Kijelölés</button>
             <button class="tool-button" data-tool="line"><span class="tool-icon">／</span>Egyenes vonal</button>
+            <button class="tool-button" data-tool="circle"><span class="tool-icon">◯</span>Kör</button>
+            <button class="tool-button" data-tool="door"><span class="tool-icon">◔</span>Ajtó</button>
             <button class="tool-button" data-tool="text"><span class="tool-icon">T</span>Szövegdoboz</button>
             <button class="tool-button" data-tool="pan"><span class="tool-icon">✥</span>Nézet mozgatása</button>
           </div>
@@ -172,6 +179,7 @@
         </section>
         <section class="section">
           <div class="panel-heading"><h2>Rajzolási beállítások</h2></div>
+          <div class="form-grid" style="margin-bottom:9px"><div class="field"><label for="drawWidth">Vonalvastagság</label><input id="drawWidth" type="number" min="1" max="50" step="1" value="4"></div><div class="field"><label for="angleStep">Szögrögzítés</label><select id="angleStep"><option value="0">Ki</option><option value="15">15°</option><option value="30">30°</option><option value="45">45°</option><option value="90">90°</option></select></div></div>
           <label class="checkbox"><input id="snapToggle" type="checkbox"> Rácshoz illesztés</label>
           <label class="checkbox"><input id="magneticToggle" type="checkbox"> Mágneses vonalillesztés</label>
           <label class="checkbox"><input id="orthogonalToggle" type="checkbox"> Csak vízszintes/függőleges</label>
@@ -180,12 +188,20 @@
           <p>Az aktív rétegen a közeli vonalvégeket közös pontra húzza.</p>
         </section>
         <section class="section">
+          <div class="panel-heading"><h2>Segédvonalak</h2></div>
+          <label class="checkbox"><input id="guideSnapToggle" type="checkbox" checked> Illesztés segédvonalakhoz</label>
+          <button class="button subtle" id="clearGuides" style="width:100%; margin-top:10px">Összes segédvonal törlése</button>
+          <p>Húzzon a felső vagy a bal vonalzóról. Törlés: vissza a vonalzóra, dupla kattintás, vagy kijelölés + <kbd>Delete</kbd>.</p>
+        </section>
+        <section class="section">
           <div class="panel-heading"><h2>Rétegek</h2><button class="mini-button" id="addLayer" title="Új réteg">＋</button></div>
           <div class="layers" id="layers"></div>
         </section>
         <section class="section help">
           <p><kbd>Ctrl</kbd> + <kbd>Z</kbd> visszavonás, <kbd>Ctrl</kbd> + <kbd>Y</kbd> újra.</p>
           <p><kbd>Shift</kbd> húzás közben vízszintes vagy függőleges vonalat kényszerít.</p>
+          <p><kbd>R</kbd> / <kbd>Shift</kbd> + <kbd>R</kbd> a kijelölt vonalat vagy ajtót a megadott lépéssel forgatja.</p>
+          <p>Ajtó: a zsanértól a másik tok felé húzza. Dupla kattintás megfordítja a nyitás irányát.</p>
           <p>Görgővel nagyíthat, a nézetet a kéz eszközzel mozgathatja.</p>
         </section>
       </aside>
@@ -201,8 +217,11 @@
             <button class="button subtle" id="resetView" title="Nagyítás és eltolás visszaállítása">Középre</button>
           </div>
         </div>
+        <button class="ruler-corner" id="guideVisibility" title="Segédvonalak megjelenítése / elrejtése">┼</button>
+        <svg class="ruler ruler-top" id="rulerTop" xmlns="http://www.w3.org/2000/svg" aria-label="Felső vonalzó – húzza le a segédvonalhoz"></svg>
+        <svg class="ruler ruler-left" id="rulerLeft" xmlns="http://www.w3.org/2000/svg" aria-label="Bal vonalzó – húzza jobbra a segédvonalhoz"></svg>
         <div class="stage-wrap"><svg id="stage" xmlns="http://www.w3.org/2000/svg" aria-label="Rajzfelület"></svg></div>
-        <div class="hint">Az aktív rétegre rajzol. A kijelölt vonal végpontjai húzhatók.</div>
+        <div class="hint">Az aktív rétegre rajzol. A kijelölt vonal, ajtó végpontjai és a kör sugara húzhatók.</div>
       </section>
 
       <aside class="panel right-panel">
@@ -255,6 +274,11 @@
     let future = [];
     let currentTool = 'select';
     let selectedColor = colors[0][0];
+    let selectedWidth = readPreference('tervrajz-linewidth', 4, 1, 50);
+    let rotationStep = readPreference('tervrajz-rotationstep', 15, 0.1, 360);
+    let rotatePivot = 'center';
+    let guidesVisible = true;
+    let activeGuideId = null;
     let gridVisible = true;
     let view = { x: 0, y: 0, w: 1400, h: 900 };
     let interaction = null;
@@ -262,12 +286,15 @@
     let editingTextObject = null;
     let autosaveTimer = null;
 
+    function readPreference(key, fallback, min, max) { try { const value = Number(localStorage.getItem(key)); return value >= min && value <= max ? value : fallback; } catch (error) { return fallback; } }
+    function writePreference(key, value) { try { localStorage.setItem(key, String(value)); } catch (error) { /* nem kritikus */ } }
+    function setDrawWidth(value) { selectedWidth = Math.max(1, Math.min(50, Number(value) || 4)); writePreference('tervrajz-linewidth', selectedWidth); $('#drawWidth').value = selectedWidth; }
     function uid(prefix = 'id') { return prefix + '-' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); }
     function makeState() {
       const layer = { id: uid('layer'), name: 'Tervrajz', visible: true, locked: false, opacity: 1, x: 0, y: 0, scale: 1, rotation: 0, objects: [] };
-      return { version: 1, name: 'Névtelen terv', canvas: { width: 1400, height: 900, orientation: 'landscape', background: '#ffffff' }, settings: { snap: false, magnetic: false, magneticDistance: 18, orthogonal: false, gridSize: 25, unitValue: 1, unit: 'cm' }, layers: [layer], activeLayerId: layer.id, activeObjectId: null };
+      return { version: 1, name: 'Névtelen terv', canvas: { width: 1400, height: 900, orientation: 'landscape', background: '#ffffff' }, settings: { snap: false, magnetic: false, magneticDistance: 18, orthogonal: false, angleStep: 0, guideSnap: true, gridSize: 25, unitValue: 1, unit: 'cm' }, guides: [], layers: [layer], activeLayerId: layer.id, activeObjectId: null };
     }
-    function ensureSettings() { state.settings = { snap: false, magnetic: false, magneticDistance: 18, orthogonal: false, gridSize: 25, unitValue: 1, unit: 'cm', ...(state.settings || {}) }; if (!state.canvas.orientation) state.canvas.orientation = state.canvas.width >= state.canvas.height ? 'landscape' : 'portrait'; }
+    function ensureSettings() { state.settings = { snap: false, magnetic: false, magneticDistance: 18, orthogonal: false, angleStep: 0, guideSnap: true, gridSize: 25, unitValue: 1, unit: 'cm', ...(state.settings || {}) }; if (!Array.isArray(state.guides)) state.guides = []; if (!state.canvas.orientation) state.canvas.orientation = state.canvas.width >= state.canvas.height ? 'landscape' : 'portrait'; }
     function clone(value) { return JSON.parse(JSON.stringify(value)); }
     function activeLayer() { return state.layers.find(layer => layer.id === state.activeLayerId) || state.layers[state.layers.length - 1]; }
     function selectedObject() {
@@ -297,7 +324,7 @@
     function setTool(tool) {
       currentTool = tool;
       document.querySelectorAll('[data-tool]').forEach(button => button.classList.toggle('active', button.dataset.tool === tool));
-      stage.style.cursor = tool === 'pan' ? 'grab' : tool === 'line' ? 'crosshair' : tool === 'text' ? 'text' : 'default';
+      stage.style.cursor = tool === 'pan' ? 'grab' : ['line', 'circle', 'door'].includes(tool) ? 'crosshair' : tool === 'text' ? 'text' : 'default';
     }
     function escapeXml(value) {
       return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
@@ -324,17 +351,116 @@
       const dx = point.x - centerX, dy = point.y - centerY;
       return { x: centerX + dx * Math.cos(angle) - dy * Math.sin(angle), y: centerY + dx * Math.sin(angle) + dy * Math.cos(angle) };
     }
+    function canvasPoint(point, layer) {
+      const angle = layer.rotation * Math.PI / 180;
+      return { x: layer.x + (point.x * Math.cos(angle) - point.y * Math.sin(angle)) * layer.scale, y: layer.y + (point.x * Math.sin(angle) + point.y * Math.cos(angle)) * layer.scale };
+    }
+    // Rajzi egység / képernyőpixel – a képernyőn állandó méretű tűréshez.
+    function unitsPerPixel() { return 1 / (stage.getScreenCTM()?.a || 1); }
+    // Segédvonalak a rajzlap koordinátáiban vannak; a réteg saját koordinátáira visszaszámolva illesztünk.
+    function snapToGuides(rawLocal, result) {
+      const layer = activeLayer();
+      if (!layer || !state.settings.guideSnap || !guidesVisible || !state.guides.length) return result;
+      const raw = canvasPoint(rawLocal, layer), snapped = canvasPoint(result, layer), tolerance = 10 * unitsPerPixel();
+      let changed = false;
+      ['x', 'y'].forEach(axis => {
+        let best = null, bestDistance = tolerance;
+        state.guides.filter(guide => guide.axis === axis).forEach(guide => { const distance = Math.abs(raw[axis] - guide.pos); if (distance <= bestDistance) { best = guide; bestDistance = distance; } });
+        if (best) { snapped[axis] = best.pos; changed = true; }
+      });
+      return changed ? localPoint(snapped, layer) : result;
+    }
+    function guidesMarkup() {
+      if (!guidesVisible || !state.guides.length) return '';
+      return `<g class="guide-layer">${state.guides.map(guide => {
+        const coords = guide.axis === 'x' ? `x1="${guide.pos}" y1="-100000" x2="${guide.pos}" y2="100000"` : `x1="-100000" y1="${guide.pos}" x2="100000" y2="${guide.pos}"`;
+        const active = guide.id === activeGuideId;
+        return `<line ${coords} stroke="${active ? '#f97316' : '#06b6d4'}" stroke-width="${active ? 1.6 : 1}" stroke-dasharray="${active ? '' : '6 4'}" vector-effect="non-scaling-stroke" pointer-events="none"/><line data-guide="${guide.id}" ${coords} stroke="transparent" stroke-width="9" vector-effect="non-scaling-stroke" style="cursor:${guide.axis === 'x' ? 'col-resize' : 'row-resize'}"/>`;
+      }).join('')}</g>`;
+    }
+    function niceStep(minimum) { const power = 10 ** Math.floor(Math.log10(minimum)); return [1, 2, 5, 10].map(factor => factor * power).find(value => value >= minimum); }
+    function renderRulers() {
+      const ctm = stage.getScreenCTM(), top = $('#rulerTop'), left = $('#rulerLeft');
+      if (!ctm || !ctm.a) return;
+      const unit = Number(state.settings.unitValue) || 1, pixels = ctm.a;
+      const major = niceStep(70 / pixels * unit) / unit, minor = major / 5;
+      const format = value => String(Math.round(value * unit * 100) / 100);
+      const draw = (ruler, horizontal) => {
+        const rect = ruler.getBoundingClientRect(), size = horizontal ? rect.width : rect.height, thickness = horizontal ? rect.height : rect.width;
+        const origin = horizontal ? ctm.e - rect.left : ctm.f - rect.top;
+        const first = Math.floor(-origin / pixels / minor), last = Math.ceil((size - origin) / pixels / minor);
+        const parts = [];
+        for (let index = first; index <= last; index++) {
+          const position = origin + index * minor * pixels, isMajor = index % 5 === 0, length = isMajor ? 11 : 5;
+          parts.push(horizontal ? `<line x1="${position}" y1="${thickness}" x2="${position}" y2="${thickness - length}" stroke="#94a3b8"/>` : `<line x1="${thickness}" y1="${position}" x2="${thickness - length}" y2="${position}" stroke="#94a3b8"/>`);
+          if (isMajor) parts.push(horizontal ? `<text x="${position + 3}" y="9" font-size="9" fill="#64748b">${format(index * minor)}</text>` : `<text transform="translate(9 ${position + 3}) rotate(-90)" text-anchor="end" font-size="9" fill="#64748b">${format(index * minor)}</text>`);
+        }
+        if (guidesVisible) state.guides.filter(guide => guide.axis === (horizontal ? 'x' : 'y')).forEach(guide => { const position = origin + guide.pos * pixels; parts.push(horizontal ? `<path d="M ${position - 4} 0 L ${position + 4} 0 L ${position} 7 Z" fill="${guide.id === activeGuideId ? '#f97316' : '#06b6d4'}"/>` : `<path d="M 0 ${position - 4} L 0 ${position + 4} L 7 ${position} Z" fill="${guide.id === activeGuideId ? '#f97316' : '#06b6d4'}"/>`); });
+        ruler.innerHTML = parts.join('');
+      };
+      draw(top, true); draw(left, false);
+      $('#guideVisibility').classList.toggle('off', !guidesVisible);
+    }
+    function startGuideDrag(event, axis) {
+      event.preventDefault();
+      guidesVisible = true;
+      const point = svgPoint(event), guide = { id: uid('guide'), axis, pos: point[axis] };
+      history.push(clone(state)); future = [];
+      state.guides.push(guide); activeGuideId = guide.id;
+      interaction = { kind: 'guide', guide, created: true };
+      event.currentTarget.setPointerCapture?.(event.pointerId); render();
+    }
+    function guideReleasedOnRuler(event, guide) {
+      const rect = (guide.axis === 'x' ? $('#rulerLeft') : $('#rulerTop')).getBoundingClientRect();
+      const size = guide.axis === 'x' ? state.canvas.width : state.canvas.height;
+      return (guide.axis === 'x' ? event.clientX <= rect.right : event.clientY <= rect.bottom) || guide.pos < 0 || guide.pos > size;
+    }
+    function deleteGuide(id) { commit(() => { state.guides = state.guides.filter(guide => guide.id !== id); }); if (activeGuideId === id) activeGuideId = null; render(); }
     function snapLocalPoint(point, excludeId = null) {
       const step = Math.max(1, Number(state.settings.gridSize) || 25);
       let result = state.settings.snap ? { x: Math.round(point.x / step) * step, y: Math.round(point.y / step) * step } : point;
+      result = snapToGuides(point, result);
       if (!state.settings.magnetic) return result;
       const layer = activeLayer(); let nearest = null; let nearestDistance = Math.max(3, Number(state.settings.magneticDistance) || 18);
-      layer?.objects.filter(object => object.type === 'line' && object.id !== excludeId).forEach(object => [[object.x1, object.y1], [object.x2, object.y2]].forEach(([x, y]) => { const distance = Math.hypot(point.x - x, point.y - y); if (distance <= nearestDistance) { nearest = { x, y }; nearestDistance = distance; } }));
+      layer?.objects.filter(object => isSegment(object) && object.id !== excludeId).forEach(object => [[object.x1, object.y1], [object.x2, object.y2]].forEach(([x, y]) => { const distance = Math.hypot(point.x - x, point.y - y); if (distance <= nearestDistance) { nearest = { x, y }; nearestDistance = distance; } }));
       return nearest || result;
     }
     function constrainLinePoint(point, fixed, force = false) {
-      if (!state.settings.orthogonal && !force) return point;
-      return Math.abs(point.x - fixed.x) >= Math.abs(point.y - fixed.y) ? { x: point.x, y: fixed.y } : { x: fixed.x, y: point.y };
+      const step = force || state.settings.orthogonal ? 90 : Number(state.settings.angleStep) || 0;
+      if (!step) return point;
+      if (step === 90) return Math.abs(point.x - fixed.x) >= Math.abs(point.y - fixed.y) ? { x: point.x, y: fixed.y } : { x: fixed.x, y: point.y };
+      const dx = point.x - fixed.x, dy = point.y - fixed.y;
+      if (!dx && !dy) return point;
+      const angle = Math.round(Math.atan2(dy, dx) / (step * Math.PI / 180)) * step * Math.PI / 180;
+      const length = dx * Math.cos(angle) + dy * Math.sin(angle);
+      return { x: fixed.x + length * Math.cos(angle), y: fixed.y + length * Math.sin(angle) };
+    }
+    // Vonal és ajtó: két végponttal (x1,y1 → x2,y2) leírt elemek. Ajtónál az 1. pont a zsanér.
+    function isSegment(object) { return object?.type === 'line' || object?.type === 'door'; }
+    function roundCoord(value) { return Math.round(value * 1e6) / 1e6; }
+    function segmentLength(object) { return Math.hypot(object.x2 - object.x1, object.y2 - object.y1); }
+    // Szög fokban, matematikai irányban (az óramutatóval ellentétesen pozitív, felfelé mutató y-tengellyel).
+    function segmentAngle(object) { const angle = -Math.atan2(object.y2 - object.y1, object.x2 - object.x1) * 180 / Math.PI; return (angle % 360 + 360) % 360; }
+    function rotateSegment(object, degrees, pivot = 'center') {
+      const radians = -degrees * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians);
+      const px = pivot === 'start' ? object.x1 : (object.x1 + object.x2) / 2, py = pivot === 'start' ? object.y1 : (object.y1 + object.y2) / 2;
+      const turn = (x, y) => ({ x: roundCoord(px + (x - px) * cos - (y - py) * sin), y: roundCoord(py + (x - px) * sin + (y - py) * cos) });
+      const start = turn(object.x1, object.y1), end = turn(object.x2, object.y2);
+      object.x1 = start.x; object.y1 = start.y; object.x2 = end.x; object.y2 = end.y;
+    }
+    function setSegmentLength(object, length) {
+      const current = segmentLength(object) || 1, ratio = Math.max(1, length) / current;
+      object.x2 = roundCoord(object.x1 + (object.x2 - object.x1) * ratio); object.y2 = roundCoord(object.y1 + (object.y2 - object.y1) * ratio);
+    }
+    // A zsanér a nyílás másik végére kerül; az oldalváltás miatt az ajtó a fal ugyanazon oldalára nyílik.
+    function flipDoorHinge(object) { [object.x1, object.y1, object.x2, object.y2] = [object.x2, object.y2, object.x1, object.y1]; object.side = object.side === -1 ? 1 : -1; }
+    function doorGeometry(object) {
+      const width = segmentLength(object) || 1, ux = (object.x2 - object.x1) / width, uy = (object.y2 - object.y1) / width, side = object.side === -1 ? -1 : 1;
+      return { width, leafX: object.x1 - uy * side * width, leafY: object.y1 + ux * side * width, sweep: side === 1 ? 1 : 0 };
+    }
+    function doorSectorPath(object) {
+      const door = doorGeometry(object);
+      return `M ${object.x1} ${object.y1} L ${object.x2} ${object.y2} A ${door.width} ${door.width} 0 0 ${door.sweep} ${door.leafX} ${door.leafY} Z`;
     }
     function gridMarkup() {
       if (!gridVisible) return '';
@@ -350,6 +476,14 @@
       const common = `data-object="${object.id}"`;
       if (object.type === 'line') {
         return `<line ${common} x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="${object.color}" stroke-width="${object.width}" stroke-linecap="round"/><line ${common} x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="transparent" stroke-width="${Math.max(14, object.width + 10)}"/>`;
+      }
+      if (object.type === 'circle') {
+        return `<circle ${common} cx="${object.cx}" cy="${object.cy}" r="${object.r}" fill="none" stroke="${object.color}" stroke-width="${object.width}"/><circle ${common} cx="${object.cx}" cy="${object.cy}" r="${object.r}" fill="none" stroke="transparent" stroke-width="${Math.max(14, object.width + 10)}"/>`;
+      }
+      if (object.type === 'door') {
+        const door = doorGeometry(object);
+        const dash = `stroke-dasharray="${Math.max(4, object.width * 3)} ${Math.max(3, object.width * 2)}"`;
+        return `<g ${common}><path ${common} d="${doorSectorPath(object)}" fill="transparent" stroke="transparent" stroke-width="${Math.max(14, object.width + 10)}"/><line x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="${object.color}" stroke-width="${object.width}" ${dash}/><line x1="${object.x1}" y1="${object.y1}" x2="${door.leafX}" y2="${door.leafY}" stroke="${object.color}" stroke-width="${object.width}" ${dash}/><path d="M ${object.x2} ${object.y2} A ${door.width} ${door.width} 0 0 ${door.sweep} ${door.leafX} ${door.leafY}" fill="none" stroke="${object.color}" stroke-width="${Math.max(1, object.width * .75)}" ${object.arcDashed ? dash : ''}/></g>`;
       }
       if (object.type === 'text') {
         const lines = String(object.text).split('\n').map((line, index) => `<tspan x="${object.x}" dy="${index ? object.size * 1.25 : 0}">${escapeXml(line) || ' '}</tspan>`).join('');
@@ -368,6 +502,12 @@
       if (!object) return '';
       if (object.type === 'line') {
         return `<g class="selection-layer" data-selection="${object.id}" pointer-events="all"><line data-object="${object.id}" x1="${object.x1}" y1="${object.y1}" x2="${object.x2}" y2="${object.y2}" stroke="#2563eb" stroke-width="${Math.max(object.width + 5, 9)}" opacity=".18"/><circle data-handle="start" data-object="${object.id}" cx="${object.x1}" cy="${object.y1}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle data-handle="end" data-object="${object.id}" cx="${object.x2}" cy="${object.y2}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/></g>`;
+      }
+      if (object.type === 'circle') {
+        return `<g class="selection-layer" pointer-events="all"><circle data-object="${object.id}" cx="${object.cx}" cy="${object.cy}" r="${object.r}" fill="none" stroke="#2563eb" stroke-width="${Math.max(object.width + 5, 9)}" opacity=".18"/><circle cx="${object.cx}" cy="${object.cy}" r="3" fill="#2563eb" pointer-events="none"/><line x1="${object.cx}" y1="${object.cy}" x2="${object.cx + object.r}" y2="${object.cy}" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 4" pointer-events="none"/><circle data-handle="radius" data-object="${object.id}" cx="${object.cx + object.r}" cy="${object.cy}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"/></g>`;
+      }
+      if (object.type === 'door') {
+        return `<g class="selection-layer" pointer-events="all"><path data-object="${object.id}" d="${doorSectorPath(object)}" fill="#2563eb" fill-opacity=".08" stroke="#2563eb" stroke-opacity=".35" stroke-width="2"/><circle data-handle="start" data-object="${object.id}" cx="${object.x1}" cy="${object.y1}" r="7" fill="#2563eb" stroke="#fff" stroke-width="2"><title>Zsanér</title></circle><circle data-handle="end" data-object="${object.id}" cx="${object.x2}" cy="${object.y2}" r="7" fill="#fff" stroke="#2563eb" stroke-width="2"><title>Tok (nyitott oldal)</title></circle></g>`;
       }
       if (object.type === 'image') {
         const centerX = object.x + object.width / 2, centerY = object.y + object.height / 2, rotateY = object.y - 28, rotation = object.rotation || 0;
@@ -394,26 +534,29 @@
         const selection = layer.id === state.activeLayerId && layer.visible ? selectionMarkup(layer.objects.find(object => object.id === state.activeObjectId)) : '';
         return `<g data-layer="${layer.id}" transform="${layerTransform(layer)}" opacity="${layer.opacity}" style="${layer.locked ? 'pointer-events:none' : ''}">${contents}${selection}</g>`;
       }).join('');
-      stage.innerHTML = `<rect width="${canvas.width}" height="${canvas.height}" fill="${canvas.background}"/>${gridMarkup()}${layers}`;
+      stage.innerHTML = `<rect width="${canvas.width}" height="${canvas.height}" fill="${canvas.background}"/>${gridMarkup()}${layers}${guidesMarkup()}`;
       $('#zoomLabel').textContent = `${Math.round(state.canvas.width / view.w * 100)}%`;
       $('#undoButton').disabled = history.length === 0;
       $('#redoButton').disabled = future.length === 0;
-      renderLayers(); renderProperties(); renderSettings();
+      renderLayers(); renderProperties(); renderSettings(); renderRulers();
     }
     function renderLayers() {
       const container = $('#layers');
       container.innerHTML = state.layers.slice().reverse().map(layer => { const index = state.layers.indexOf(layer); return `<div class="layer-row ${layer.id === state.activeLayerId ? 'active' : ''}"><button class="mini-button" data-layer-action="visibility" data-layer-id="${layer.id}" title="Láthatóság">${layer.visible ? '◉' : '○'}</button><button class="layer-main" data-layer-action="select" data-layer-id="${layer.id}"><span class="layer-name">${escapeXml(layer.name)}</span><span class="layer-meta">${layer.objects.length} elem${layer.locked ? ' · zárolva' : ''}</span></button><button class="mini-button" data-layer-action="lock" data-layer-id="${layer.id}" title="Zárolás">${layer.locked ? '▣' : '□'}</button><button class="mini-button" data-layer-action="raise" data-layer-id="${layer.id}" title="Réteg feljebb" ${index === state.layers.length - 1 ? 'disabled' : ''}>↑</button><button class="mini-button" data-layer-action="lower" data-layer-id="${layer.id}" title="Réteg lejjebb" ${index === 0 ? 'disabled' : ''}>↓</button><button class="mini-button" data-layer-action="delete" data-layer-id="${layer.id}" title="Réteg törlése" ${state.layers.length === 1 ? 'disabled' : ''}>×</button></div>`; }).join('');
     }
-    function formatLength(object) {
-      const length = Math.hypot(object.x2 - object.x1, object.y2 - object.y1) * Number(state.settings.unitValue || 1);
-      return `${length < 10 ? length.toFixed(2) : length.toFixed(1)} ${state.settings.unit}`;
+    function toUnits(value) { return Math.round(value * Number(state.settings.unitValue || 1) * 100) / 100; }
+    function fromUnits(value) { return Number(value) / Number(state.settings.unitValue || 1); }
+    function segmentFieldsMarkup(object, lengthLabel) {
+      return `<div class="form-grid"><div class="field"><label for="objectWidth">Vonalvastagság</label><input id="objectWidth" type="number" min="1" max="50" step="1" value="${object.width}"></div><div class="field"><label for="objectLength">${lengthLabel} (${state.settings.unit})</label><input id="objectLength" type="number" min="0" step="any" value="${toUnits(segmentLength(object))}"></div><div class="field"><label for="objectAngle">Szög °</label><input id="objectAngle" type="number" step="any" value="${Math.round(segmentAngle(object) * 10) / 10}"></div><div class="field"><label for="rotationStep">Forgatási lépés °</label><input id="rotationStep" type="number" min="0.1" max="360" step="any" value="${rotationStep}"></div><div class="field full"><label for="rotatePivot">Forgatás pontja</label><select id="rotatePivot"><option value="center" ${rotatePivot === 'center' ? 'selected' : ''}>Középpont</option><option value="start" ${rotatePivot === 'start' ? 'selected' : ''}>${object.type === 'door' ? 'Zsanér' : 'Kezdőpont'}</option></select></div></div><div class="property-actions"><button class="button" id="rotateCcw" title="Forgatás balra (R)">↺ ${rotationStep}°</button><button class="button" id="rotateCw" title="Forgatás jobbra (Shift+R)">↻ ${rotationStep}°</button></div>`;
     }
     function renderProperties() {
       const layer = activeLayer();
       if (!layer) { $('#layerProperties').innerHTML = '<div class="empty">Nincs réteg.</div>'; return; }
       const object = selectedObject();
       let objectFieldsMarkup = '<div class="empty" style="margin-top:12px">Nincs kijelölt elem.</div>';
-      if (object?.type === 'line') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt vonal</h2></div><div class="form-grid"><div class="field"><label for="objectWidth">Vonalvastagság</label><input id="objectWidth" type="number" min="1" max="50" step="1" value="${object.width}"></div><div class="field"><label>Hossz</label><input value="${formatLength(object)}" readonly></div></div></div>`;
+      if (object?.type === 'line') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt vonal</h2></div>${segmentFieldsMarkup(object, 'Hossz')}<p class="help">A szög 0° = jobbra, 90° = felfelé. A hossz módosításakor a kezdőpont marad a helyén.</p></div>`;
+      if (object?.type === 'door') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt ajtó</h2></div>${segmentFieldsMarkup(object, 'Szélesség')}<div class="property-actions"><button class="button" id="flipHinge" title="A zsanér a nyílás másik végére kerül">⇄ Zsanér oldala</button><button class="button" id="flipSwing" title="Befelé / kifelé nyíló (dupla kattintás)">⇅ Nyitás iránya</button></div><label class="checkbox" style="margin-top:10px"><input id="doorArcDashed" type="checkbox" ${object.arcDashed ? 'checked' : ''}> Az ív is szaggatott</label><p class="help">A kitöltött kék fogópont a zsanér. Dupla kattintás az ajtón megfordítja a nyitás irányát.</p></div>`;
+      if (object?.type === 'circle') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt kör</h2></div><div class="form-grid"><div class="field"><label for="objectWidth">Vonalvastagság</label><input id="objectWidth" type="number" min="1" max="50" step="1" value="${object.width}"></div><div class="field"><label for="circleRadius">Sugár (${state.settings.unit})</label><input id="circleRadius" type="number" min="0" step="any" value="${toUnits(object.r)}"></div><div class="field"><label for="circleDiameter">Átmérő (${state.settings.unit})</label><input id="circleDiameter" type="number" min="0" step="any" value="${toUnits(object.r * 2)}"></div></div><p class="help">A jobb oldali fogóponttal a sugár húzható, a körvonal megfogásával mozgatható.</p></div>`;
       if (object?.type === 'text') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt szöveg</h2></div><div class="field"><label for="objectText">Szöveg tartalma</label><textarea id="objectText" class="object-textarea">${escapeXml(object.text)}</textarea></div><div class="form-grid" style="margin-top:10px"><div class="field"><label for="objectSize">Szövegméret</label><input id="objectSize" type="number" min="8" max="200" step="1" value="${object.size}"></div><div class="field"><label for="objectColor">Szövegszín</label><input id="objectColor" type="color" value="${object.color}"></div><div class="field"><label for="objectRotation">Forgatás °</label><input id="objectRotation" type="number" step="1" value="${object.rotation || 0}"></div></div><div class="property-actions"><button class="button" id="rotateTextButton">↻ 90° forgatás</button></div><p class="help">A kijelölés fölötti kör fogópont húzásával szabadon forgatható. A jobb alsó fogópont méretezi.</p></div>`;
       if (object?.type === 'image') objectFieldsMarkup = `<div style="margin-top:16px"><div class="panel-heading"><h2>Kijelölt importált anyag</h2></div><div class="field"><label for="objectOpacity">Kép átlátszósága: ${Math.round((object.opacity ?? 1) * 100)}%</label><input id="objectOpacity" type="range" min="0.05" max="1" step=".01" value="${object.opacity ?? 1}"></div><div class="field" style="margin-top:10px"><label for="objectRotation">Forgatás °</label><input id="objectRotation" type="number" step="1" value="${object.rotation || 0}"></div><div class="property-actions"><button class="button" id="rotateImageButton">↻ 90° forgatás</button><button class="button" id="resetAspectButton">↺ Torzítás visszaállítása</button></div><p class="help">A jobb alsó lakat ikon zárva tartja az arányt minden fogóponton; kattints rá a kioldáshoz, hogy a jobb oldali és az alsó fogóponttal külön-külön torzíthasd a szélességet, illetve a magasságot.</p></div>`;
       $('#layerProperties').innerHTML = `<div class="form-grid"><div class="field full"><label for="layerName">Réteg neve</label><input id="layerName" value="${escapeXml(layer.name)}"></div><div class="field"><label for="layerX">X mozgatás</label><input id="layerX" type="number" step="1" value="${layer.x}"></div><div class="field"><label for="layerY">Y mozgatás</label><input id="layerY" type="number" step="1" value="${layer.y}"></div><div class="field"><label for="layerScale">Méretezés</label><input id="layerScale" type="number" min=".1" max="8" step=".05" value="${layer.scale}"></div><div class="field"><label for="layerRotation">Forgatás °</label><input id="layerRotation" type="number" step="1" value="${layer.rotation}"></div><div class="field full"><label for="layerOpacity">Átlátszóság: ${Math.round(layer.opacity * 100)}%</label><input id="layerOpacity" type="range" min="0" max="1" step=".01" value="${layer.opacity}"></div><label class="checkbox"><input id="layerVisible" type="checkbox" ${layer.visible ? 'checked' : ''}> Látható</label><label class="checkbox"><input id="layerLocked" type="checkbox" ${layer.locked ? 'checked' : ''}> Zárolt</label></div><div class="property-actions"><button class="button" id="deleteLayer">Réteg törlése</button><button class="button" id="duplicateLayer">Másolat</button></div>${objectFieldsMarkup}`;
@@ -427,7 +570,18 @@
       $('#layerVisible').addEventListener('change', event => commit(() => { layer.visible = event.target.checked; }));
       $('#layerLocked').addEventListener('change', event => commit(() => { layer.locked = event.target.checked; }));
       const object = selectedObject();
-      if (object && $('#objectWidth')) $('#objectWidth').addEventListener('change', event => commit(() => { object.width = Math.max(1, Number(event.target.value) || 4); }));
+      if (object && $('#objectWidth')) $('#objectWidth').addEventListener('change', event => { setDrawWidth(event.target.value); commit(() => { object.width = selectedWidth; }); });
+      if (object && $('#objectLength')) $('#objectLength').addEventListener('change', event => { const length = fromUnits(event.target.value); if (length > 0) commit(() => setSegmentLength(object, length)); else render(); });
+      if (object && $('#objectAngle')) $('#objectAngle').addEventListener('change', event => { const angle = Number(event.target.value); if (Number.isFinite(angle)) commit(() => rotateSegment(object, angle - segmentAngle(object), rotatePivot)); });
+      if (object && $('#rotationStep')) $('#rotationStep').addEventListener('change', event => { rotationStep = Math.max(.1, Math.min(360, Number(event.target.value) || 15)); writePreference('tervrajz-rotationstep', rotationStep); render(); });
+      if (object && $('#rotatePivot')) $('#rotatePivot').addEventListener('change', event => { rotatePivot = event.target.value; });
+      if (object && $('#rotateCcw')) $('#rotateCcw').addEventListener('click', () => commit(() => rotateSegment(object, rotationStep, rotatePivot)));
+      if (object && $('#rotateCw')) $('#rotateCw').addEventListener('click', () => commit(() => rotateSegment(object, -rotationStep, rotatePivot)));
+      if (object && $('#flipHinge')) $('#flipHinge').addEventListener('click', () => commit(() => flipDoorHinge(object)));
+      if (object && $('#flipSwing')) $('#flipSwing').addEventListener('click', () => commit(() => { object.side = object.side === -1 ? 1 : -1; }));
+      if (object && $('#doorArcDashed')) $('#doorArcDashed').addEventListener('change', event => commit(() => { object.arcDashed = event.target.checked; }));
+      if (object && $('#circleRadius')) $('#circleRadius').addEventListener('change', event => { const radius = fromUnits(event.target.value); if (radius > 0) commit(() => { object.r = radius; }); else render(); });
+      if (object && $('#circleDiameter')) $('#circleDiameter').addEventListener('change', event => { const radius = fromUnits(event.target.value) / 2; if (radius > 0) commit(() => { object.r = radius; }); else render(); });
       if (object && $('#objectSize')) $('#objectSize').addEventListener('change', event => commit(() => { object.size = Math.max(8, Number(event.target.value) || 24); }));
       if (object && $('#objectText')) $('#objectText').addEventListener('change', event => commit(() => { object.text = event.target.value || ' '; }));
       if (object && $('#objectColor')) $('#objectColor').addEventListener('change', event => { selectedColor = event.target.value; commit(() => { object.color = event.target.value; }); renderSwatches(); });
@@ -450,6 +604,8 @@
       $('#snapToggle').checked = state.settings.snap;
       $('#magneticToggle').checked = state.settings.magnetic;
       $('#orthogonalToggle').checked = state.settings.orthogonal;
+      $('#angleStep').value = String(state.settings.angleStep || 0);
+      $('#guideSnapToggle').checked = state.settings.guideSnap !== false;
       $('#gridSize').value = state.settings.gridSize;
       $('#magneticDistance').value = state.settings.magneticDistance;
       $('#orientation').value = state.canvas.orientation;
@@ -507,15 +663,23 @@
     function startInteraction(event) {
       const rawPoint = svgPoint(event);
       if (currentTool === 'pan') { interaction = { kind: 'pan', start: rawPoint, original: clone(view) }; stage.setPointerCapture?.(event.pointerId); return; }
+      const guideElement = currentTool === 'select' && event.target.closest?.('[data-guide]');
+      if (guideElement) { const guide = state.guides.find(item => item.id === guideElement.dataset.guide); if (guide) { activeGuideId = guide.id; history.push(clone(state)); future = []; interaction = { kind: 'guide', guide, created: false, startPos: guide.pos }; stage.setPointerCapture?.(event.pointerId); render(); return; } }
+      activeGuideId = null;
       if (!isInsideCanvas(rawPoint)) return;
       const point = clampCanvasPoint(rawPoint);
       const layer = activeLayer();
       if (!layer || !selectedLayerIsUsable()) return;
       const target = event.target.closest?.('[data-object]');
       const handle = event.target.closest?.('[data-handle]');
-      if (currentTool === 'line') {
-        const local = snapLocalPoint(localPoint(point, layer)); const object = { id: uid('line'), type: 'line', x1: local.x, y1: local.y, x2: local.x, y2: local.y, color: selectedColor, width: 4 };
+      if (currentTool === 'line' || currentTool === 'door') {
+        const local = snapLocalPoint(localPoint(point, layer)); const object = { id: uid(currentTool), type: currentTool, x1: local.x, y1: local.y, x2: local.x, y2: local.y, color: selectedColor, width: selectedWidth };
+        if (currentTool === 'door') { object.side = 1; object.arcDashed = false; }
         history.push(clone(state)); future = []; layer.objects.push(object); state.activeObjectId = object.id; interaction = { kind: 'draw-line', object, layer, start: point }; render(); stage.setPointerCapture?.(event.pointerId); return;
+      }
+      if (currentTool === 'circle') {
+        const local = snapLocalPoint(localPoint(point, layer)); const object = { id: uid('circle'), type: 'circle', cx: local.x, cy: local.y, r: 0, color: selectedColor, width: selectedWidth };
+        history.push(clone(state)); future = []; layer.objects.push(object); state.activeObjectId = object.id; interaction = { kind: 'draw-circle', object, layer, start: point }; render(); stage.setPointerCapture?.(event.pointerId); return;
       }
       if (currentTool === 'text') { createTextAt(point); return; }
       if (handle && handle.dataset.handle === 'aspect-lock' && state.activeObjectId) {
@@ -542,10 +706,16 @@
     function moveInteraction(event) {
       if (!interaction) return;
       const rawPoint = svgPoint(event); const { layer } = interaction;
+      if (interaction.kind === 'guide') { const step = Math.max(1, Number(state.settings.gridSize) || 25); const value = rawPoint[interaction.guide.axis]; interaction.guide.pos = state.settings.snap ? Math.round(value / step) * step : value; render(); return; }
       if (interaction.kind === 'pan') { const dx = rawPoint.x - interaction.start.x, dy = rawPoint.y - interaction.start.y; view.x = interaction.original.x - dx; view.y = interaction.original.y - dy; render(); return; }
       const point = clampCanvasPoint(rawPoint);
       if (interaction.kind === 'draw-line') { let local = localPoint(point, layer); const fixed = { x: interaction.object.x1, y: interaction.object.y1 }; local = constrainLinePoint(local, fixed, event.shiftKey); local = snapLocalPoint(local); local = constrainLinePoint(local, fixed, event.shiftKey); interaction.object.x2 = local.x; interaction.object.y2 = local.y; render(); return; }
       if (interaction.kind === 'start' || interaction.kind === 'end') { let local = localPoint(point, layer); const fixed = interaction.kind === 'start' ? { x: interaction.object.x2, y: interaction.object.y2 } : { x: interaction.object.x1, y: interaction.object.y1 }; local = constrainLinePoint(local, fixed, event.shiftKey); local = snapLocalPoint(local, interaction.object.id); local = constrainLinePoint(local, fixed, event.shiftKey); if (interaction.kind === 'start') { interaction.object.x1 = local.x; interaction.object.y1 = local.y; } else { interaction.object.x2 = local.x; interaction.object.y2 = local.y; } render(); return; }
+      if (interaction.kind === 'draw-circle' || interaction.kind === 'radius') {
+        const local = localPoint(point, layer), object = interaction.object, step = Math.max(1, Number(state.settings.gridSize) || 25);
+        const radius = Math.hypot(local.x - object.cx, local.y - object.cy);
+        object.r = state.settings.snap ? Math.max(step, Math.round(radius / step) * step) : radius; render(); return;
+      }
       if (interaction.kind === 'text-resize') { const local = localPoint(point, layer); const longestLine = Math.max(1, ...interaction.object.text.split('\n').map(line => line.length)); interaction.object.size = Math.max(8, Math.min(200, (local.x - interaction.object.x - 5) / (longestLine * .56))); render(); return; }
       if (interaction.kind === 'text-rotate') { const local = localPoint(point, layer); const longestLine = Math.max(1, ...interaction.object.text.split('\n').map(line => line.length)); const width = Math.max(55, longestLine * interaction.object.size * .56); const height = interaction.object.size * 1.35 * Math.max(1, interaction.object.text.split('\n').length); const centerX = interaction.object.x + width / 2; const centerY = interaction.object.y - interaction.object.size + height / 2; const angle = Math.atan2(local.y - centerY, local.x - centerX); interaction.object.rotation = interaction.startRotation + (angle - interaction.startAngle) * 180 / Math.PI; render(); return; }
       if (interaction.kind === 'image-rotate') { const local = localPoint(point, layer); const centerX = interaction.object.x + interaction.object.width / 2, centerY = interaction.object.y + interaction.object.height / 2; const angle = Math.atan2(local.y - centerY, local.x - centerX); interaction.object.rotation = interaction.startRotation + (angle - interaction.startAngle) * 180 / Math.PI; render(); return; }
@@ -571,14 +741,21 @@
       }
       if (interaction.kind === 'move-object') {
         const delta = localDelta(point.x - interaction.start.x, point.y - interaction.start.y, layer); const object = interaction.object;
-        if (object.type === 'line') { object.x1 += delta.x; object.y1 += delta.y; object.x2 += delta.x; object.y2 += delta.y; if (state.settings.magnetic) { const start = snapLocalPoint({ x: object.x1, y: object.y1 }, object.id); const end = snapLocalPoint({ x: object.x2, y: object.y2 }, object.id); object.x1 = start.x; object.y1 = start.y; object.x2 = end.x; object.y2 = end.y; } }
+        if (object.type === 'circle') { object.cx += delta.x; object.cy += delta.y; if (state.settings.magnetic) { const center = snapLocalPoint({ x: object.cx, y: object.cy }); object.cx = center.x; object.cy = center.y; } }
+        else if (isSegment(object)) { object.x1 += delta.x; object.y1 += delta.y; object.x2 += delta.x; object.y2 += delta.y; if (state.settings.magnetic) { const start = snapLocalPoint({ x: object.x1, y: object.y1 }, object.id); const end = snapLocalPoint({ x: object.x2, y: object.y2 }, object.id); object.x1 = start.x; object.y1 = start.y; object.x2 = end.x; object.y2 = end.y; } }
         else { object.x += delta.x; object.y += delta.y; }
         interaction.start = point; render();
       }
     }
-    function endInteraction() {
+    function endInteraction(event) {
       if (!interaction) return;
-      if (interaction.kind === 'draw-line' && Math.hypot(interaction.object.x2 - interaction.object.x1, interaction.object.y2 - interaction.object.y1) < 3) {
+      if (interaction.kind === 'guide') {
+        const { guide, created, startPos } = interaction;
+        if (guideReleasedOnRuler(event, guide)) { state.guides = state.guides.filter(item => item.id !== guide.id); activeGuideId = null; if (created) history.pop(); }
+        else if (!created && guide.pos === startPos) history.pop();
+        interaction = null; render(); scheduleAutosave(); return;
+      }
+      if ((interaction.kind === 'draw-line' && segmentLength(interaction.object) < 3) || (interaction.kind === 'draw-circle' && interaction.object.r < 3)) {
         activeLayer().objects = activeLayer().objects.filter(item => item.id !== interaction.object.id);
         state.activeObjectId = null;
         history.pop();
@@ -646,7 +823,7 @@
       return pages;
     }
     async function renderExportCanvas() {
-      const exportSvg = stage.cloneNode(true); exportSvg.querySelectorAll('.selection-layer').forEach(node => node.remove()); exportSvg.setAttribute('viewBox', `0 0 ${state.canvas.width} ${state.canvas.height}`); exportSvg.setAttribute('width', state.canvas.width); exportSvg.setAttribute('height', state.canvas.height); exportSvg.style.background = state.canvas.background;
+      const exportSvg = stage.cloneNode(true); exportSvg.querySelectorAll('.selection-layer, .guide-layer').forEach(node => node.remove()); exportSvg.setAttribute('viewBox', `0 0 ${state.canvas.width} ${state.canvas.height}`); exportSvg.setAttribute('width', state.canvas.width); exportSvg.setAttribute('height', state.canvas.height); exportSvg.style.background = state.canvas.background;
       const svgData = new XMLSerializer().serializeToString(exportSvg); const url = URL.createObjectURL(new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' }));
       return new Promise((resolve, reject) => { const image = new Image(); image.onload = () => { const canvas = document.createElement('canvas'); canvas.width = state.canvas.width; canvas.height = state.canvas.height; const context = canvas.getContext('2d'); context.fillStyle = state.canvas.background; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0); URL.revokeObjectURL(url); resolve(canvas); }; image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('A rajz exportálása nem sikerült.')); }; image.src = url; });
     }
@@ -662,14 +839,22 @@
     function saveProject() { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.download = (state.name || 'tervrajz') + '.tervrajz.json'; link.href = URL.createObjectURL(blob); link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000); $('#saveState').textContent = 'Munka letöltve'; }
     function openProject(file) { const reader = new FileReader(); reader.onload = () => { try { const loaded = JSON.parse(reader.result); if (!loaded.canvas || !Array.isArray(loaded.layers)) throw new Error('Ismeretlen fájlformátum'); history = []; future = []; state = loaded; view = { x: 0, y: 0, w: state.canvas.width, h: state.canvas.height }; render(); $('#saveState').textContent = 'Munka megnyitva'; } catch (error) { alert('A munka nem nyitható meg: ' + error.message); } }; reader.readAsText(file); }
     function scheduleAutosave() { clearTimeout(autosaveTimer); $('#saveState').textContent = 'Mentetlen módosítás'; autosaveTimer = setTimeout(async () => { try { localStorage.setItem('tervrajz-autosave', JSON.stringify(state)); $('#saveState').textContent = 'Automatikusan mentve'; } catch (error) { $('#saveState').textContent = 'Az automatikus mentés nem sikerült'; } }, 700); }
-    function restoreAutosave() { try { const saved = localStorage.getItem('tervrajz-autosave'); if (!saved) return; const parsed = JSON.parse(saved); if (parsed.canvas && parsed.layers?.length) { if (confirm('Találtam egy korábbi automatikus mentést. Megnyissa?')) { state = parsed; view = { x: 0, y: 0, w: state.canvas.width, h: state.canvas.height }; } } } catch (error) { localStorage.removeItem('tervrajz-autosave'); } }
+    function restoreAutosave() { try { const saved = localStorage.getItem('tervrajz-autosave'); if (!saved) return; const parsed = JSON.parse(saved); if (parsed.canvas && parsed.layers?.length) { if (confirm('Találtam egy korábbi automatikus mentést. Megnyissa?')) { state = parsed; view = { x: 0, y: 0, w: state.canvas.width, h: state.canvas.height }; } } } catch (error) { try { localStorage.removeItem('tervrajz-autosave'); } catch (storageError) { /* tárhely nem elérhető */ } } }
 
     document.querySelectorAll('[data-tool]').forEach(button => button.addEventListener('click', () => setTool(button.dataset.tool)));
-    $('#swatches').addEventListener('click', event => { const color = event.target.closest('[data-color]')?.dataset.color; if (!color) return; selectedColor = color; const object = selectedObject(); if (object && (object.type === 'line' || object.type === 'text')) commit(() => { object.color = color; }); renderSwatches(); });
+    $('#swatches').addEventListener('click', event => { const color = event.target.closest('[data-color]')?.dataset.color; if (!color) return; selectedColor = color; const object = selectedObject(); if (object && ['line', 'text', 'circle', 'door'].includes(object.type)) commit(() => { object.color = color; }); renderSwatches(); });
+    $('#drawWidth').addEventListener('change', event => { setDrawWidth(event.target.value); const object = selectedObject(); if (object && ['line', 'circle', 'door'].includes(object.type)) commit(() => { object.width = selectedWidth; }); });
+    $('#rulerTop').addEventListener('pointerdown', event => startGuideDrag(event, 'y'));
+    $('#rulerLeft').addEventListener('pointerdown', event => startGuideDrag(event, 'x'));
+    $('#guideVisibility').addEventListener('click', () => { guidesVisible = !guidesVisible; activeGuideId = null; render(); });
+    $('#guideSnapToggle').addEventListener('change', event => commit(() => { state.settings.guideSnap = event.target.checked; }));
+    $('#clearGuides').addEventListener('click', () => { if (!state.guides.length) return; if (confirm(`Törlöm mind a(z) ${state.guides.length} segédvonalat?`)) { activeGuideId = null; commit(() => { state.guides = []; }); } });
+    window.addEventListener('resize', () => renderRulers());
+    $('#angleStep').addEventListener('change', event => commit(() => { state.settings.angleStep = Number(event.target.value) || 0; }));
     $('#layers').addEventListener('click', handleLayerAction);
     $('#addLayer').addEventListener('click', addLayer);
     $('#stage').addEventListener('pointerdown', startInteraction); window.addEventListener('pointermove', moveInteraction); window.addEventListener('pointerup', endInteraction);
-    $('#stage').addEventListener('dblclick', event => { const target = event.target.closest?.('[data-object]'); const layerElement = target?.closest?.('[data-layer]'); const layer = state.layers.find(item => item.id === layerElement?.dataset.layer); const object = layer?.objects.find(item => item.id === target?.dataset.object); if (object?.type === 'text' && !layer.locked) { state.activeLayerId = layer.id; state.activeObjectId = object.id; render(); editTextObject(object); } });
+    $('#stage').addEventListener('dblclick', event => { const guideElement = event.target.closest?.('[data-guide]'); if (guideElement) { deleteGuide(guideElement.dataset.guide); return; } const target = event.target.closest?.('[data-object]'); const layerElement = target?.closest?.('[data-layer]'); const layer = state.layers.find(item => item.id === layerElement?.dataset.layer); const object = layer?.objects.find(item => item.id === target?.dataset.object); if (object?.type === 'text' && !layer.locked) { state.activeLayerId = layer.id; state.activeObjectId = object.id; render(); editTextObject(object); } if (object?.type === 'door' && !layer.locked) { state.activeLayerId = layer.id; state.activeObjectId = object.id; commit(() => { object.side = object.side === -1 ? 1 : -1; }); } });
     $('#stage').addEventListener('wheel', event => { event.preventDefault(); zoomAt(event.deltaY > 0 ? 1.1 : .9, svgPoint(event)); }, { passive: false });
     $('#undoButton').addEventListener('click', undo); $('#redoButton').addEventListener('click', redo);
     $('#zoomIn').addEventListener('click', () => zoomAt(.8)); $('#zoomOut').addEventListener('click', () => zoomAt(1.25)); $('#fitView').addEventListener('click', fitView); $('#resetView').addEventListener('click', fitView); $('#gridToggle').addEventListener('click', () => { gridVisible = !gridVisible; render(); });
@@ -685,8 +870,8 @@
     $('#newProject').addEventListener('click', () => { if (confirm('Új munkát kezd? A jelenlegi munka csak akkor marad meg, ha előtte elmenti.')) { history = []; future = []; state = makeState(); fitView(); render(); } });
     $('#saveProject').addEventListener('click', saveProject); $('#openProject').addEventListener('click', () => $('#projectInput').click()); $('#projectInput').addEventListener('change', event => openProject(event.target.files[0])); $('#importFile').addEventListener('click', () => $('#fileInput').click()); $('#fileInput').addEventListener('change', event => importFile(event.target.files[0])); $('#exportPng').addEventListener('click', exportPng); $('#exportPdf').addEventListener('click', exportPdf);
     $('#projectName').addEventListener('input', event => { state.name = event.target.value; scheduleAutosave(); }); $('#insertText').addEventListener('click', insertText); $('#cancelText').addEventListener('click', () => { pendingTextPoint = null; editingTextObject = null; $('#textModal').classList.remove('open'); }); $('#textModal').addEventListener('click', event => { if (event.target.id === 'textModal') $('#cancelText').click(); });
-    window.addEventListener('keydown', event => { if (event.key === 'Escape') { interaction = null; $('#cancelText').click(); setTool('select'); render(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); } if (event.key === 'Delete' || event.key === 'Backspace') { if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) deleteSelected(); } });
-    restoreAutosave(); $('#projectName').value = state.name; renderSwatches(); render();
+    window.addEventListener('keydown', event => { if (event.key === 'Escape') { interaction = null; activeGuideId = null; $('#cancelText').click(); setTool('select'); render(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo(); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); } if (event.key === 'Delete' || event.key === 'Backspace') { if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { if (activeGuideId) deleteGuide(activeGuideId); else deleteSelected(); } } if (event.key.toLowerCase() === 'r' && !event.ctrlKey && !event.metaKey && !interaction && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) { const object = selectedObject(); if (isSegment(object) && !activeLayer().locked) commit(() => rotateSegment(object, event.shiftKey ? -rotationStep : rotationStep, rotatePivot)); } });
+    restoreAutosave(); $('#projectName').value = state.name; $('#drawWidth').value = selectedWidth; renderSwatches(); render();
   </script>
 </body>
 </html>
